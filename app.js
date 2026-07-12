@@ -1,7 +1,7 @@
 (function() {
   "use strict";
 
-  var API_BASE_URL = "https://script.google.com/macros/s/AKfycbyrBlTbdRLTF1N1mQxfdLZDKAJ3LdqGouoKwnpjzSsApz9MLiDSyy37rh_z38HEOTUT/exec";
+  var API_BASE_URL = "https://script.google.com/macros/s/AKfycbzyitnCgOn4Ic3xc0E9u6-0r92MC-iHF6d1MKJccOvAsFh9FPvmQ8ZEpPH6LAF2WwwV/exec";
   var DEFAULT_REF_PREFIX = "ADEE/ M / 400kV / Karjat / ";
 
   // GET is used for reads, POST (as text/plain) for writes — both are
