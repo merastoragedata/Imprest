@@ -1,7 +1,7 @@
 (function() {
   "use strict";
 
-  var API_BASE_URL = "https://script.google.com/macros/s/AKfycbzyitnCgOn4Ic3xc0E9u6-0r92MC-iHF6d1MKJccOvAsFh9FPvmQ8ZEpPH6LAF2WwwV/exec";
+  var API_BASE_URL = "https://script.google.com/macros/s/AKfycbyrBlTbdRLTF1N1mQxfdLZDKAJ3LdqGouoKwnpjzSsApz9MLiDSyy37rh_z38HEOTUT/exec";
   var DEFAULT_REF_PREFIX = "ADEE/ M / 400kV / Karjat / ";
 
   // GET is used for reads, POST (as text/plain) for writes — both are
@@ -539,7 +539,9 @@
     // If an employee is selected for profile editing, show that editor instead.
     if (state.adminEditUser) return renderAdminEditProfile();
     var adminData = renderAdminHome();
-    var allList = collapse("adminAllList", "All Employees — PI & TI (view only)", '<div class="hint" style="margin-bottom:12px">Grouped by Financial Year (latest first), then by employee. View, download or print any entry — editing and deleting are disabled here.</div>' + adminData.list);
+    var listCount = (state.allEntries || []).length;
+    var allListBody = listCount ? adminData.list : '<div class="hint" style="padding:16px">Loading all employees\' entries…<br><br>If this persists, the backend might not support "listAllEntries". Check that your Code.gs has this route deployed.</div>';
+    var allList = collapse("adminAllList", "All Employees — PI & TI (view only) (" + listCount + ")", '<div class="hint" style="margin-bottom:12px">Grouped by Financial Year (latest first), then by employee.</div>' + allListBody);
     return userMgmt + allList;
   }
   function renderAdminEditProfile() {
@@ -1257,13 +1259,22 @@
     }
     // Reimbursement line (compensation for overspend, shown against the cycle that overspent)
     var reimbLine = "";
-    if (!isCurrent) {
-      var cycles = cyclesOf(e);
-      for (var ci = 0; ci < cycles.length; ci++) {
-        if (cycles[ci].no === cycle.no + 1 && cycles[ci].recoup && (cycles[ci].recoup.overspentAmount || 0) > 0) {
-          reimbLine = '<div class="hint" style="margin:2px 0 8px;padding:8px 14px;border-left:3px solid var(--ok-500);background:var(--surface-2)">Reimbursement received for this cycle: <b style="color:var(--ok-500)">Rs. ' + inr(cycles[ci].recoup.overspentAmount) + "</b> (compensation for overspend, credited with the next recoupment).</div>";
-          break;
-        }
+    var cycles = cyclesOf(e);
+    for (var ci = 0; ci < cycles.length; ci++) {
+      if (cycles[ci].no === cycle.no + 1 && cycles[ci].recoup && (cycles[ci].recoup.overspentAmount || 0) > 0) {
+        reimbLine = '<div style="margin:10px 0;padding:16px 18px;border-radius:10px;border:2px solid var(--ok-500);background:var(--surface-2);font-size:15px;font-weight:700;text-align:center;animation:fadeSlideUp .4s ease">' +
+          '✓ Overspend Compensation Received: <span style="color:var(--ok-500);font-size:18px">Rs. ' + inr(cycles[ci].recoup.overspentAmount) + '</span>' +
+          '<div style="font-size:12px;font-weight:400;margin-top:4px;color:var(--steel-600)">Reimbursed via recoupment that opened Cycle ' + cycles[ci].no + '</div></div>';
+        break;
+      }
+    }
+    // Also check if PI closure reimbursed this cycle's overspend (final cycle)
+    if (!reimbLine && isCurrent && e.closure && e.closure.stage === "done" && e.closure.kind === "reimburse") {
+      var clAmt = parseFloat(e.closure.amount) || 0;
+      if (clAmt > 0) {
+        reimbLine = '<div style="margin:10px 0;padding:16px 18px;border-radius:10px;border:2px solid var(--ok-500);background:var(--surface-2);font-size:15px;font-weight:700;text-align:center;animation:fadeSlideUp .4s ease">' +
+          '✓ Final Closure Reimbursement: <span style="color:var(--ok-500);font-size:18px">Rs. ' + inr(clAmt) + '</span>' +
+          '<div style="font-size:12px;font-weight:400;margin-top:4px;color:var(--steel-600)">Received upon PI closure</div></div>';
       }
     }
     // Make entry button (only for current cycle, only if not closed)
@@ -1342,12 +1353,19 @@
     var settlementSummary = "";
     if (e.closure && e.closure.stage === "done") {
       var t = totals(e);
-      var totalCompensation = 0;
-      (e.recoupments || []).forEach(function(r) {
-        if (!r.final && r.settled === "yes") totalCompensation += parseFloat(r.overspentAmount) || 0;
+      // Compute true received using totalCredit for recoupment txns
+      var fRecv = 0;
+      (e.txns || []).forEach(function(tx) {
+        if (tx.kind === "received") {
+          if (tx.recoupmentId) {
+            var rec = (e.recoupments || []).filter(function(r) { return r.id === tx.recoupmentId; })[0];
+            fRecv += rec ? (parseFloat(rec.totalCredit) || 0) : (parseFloat(tx.amount) || 0);
+          } else { fRecv += parseFloat(tx.amount) || 0; }
+        }
       });
       var cAdj = closureAdjustment(e);
-      var fRecv = t.recv + totalCompensation + cAdj.recv, fExp = t.exp + cAdj.exp, fBal = fRecv - fExp;
+      fRecv += cAdj.recv;
+      var fExp = t.exp + cAdj.exp, fBal = fRecv - fExp;
       var notes = [];
       if (totalCompensation > 0) notes.push("Includes Rs. " + inr(totalCompensation) + " in overspend compensations.");
       if (cAdj.recv > 0) notes.push("Includes Rs. " + inr(cAdj.recv) + " reimbursement upon closure.");
@@ -1469,36 +1487,39 @@
   }
   // Consolidated read-only ledger across every cycle of the entry.
   function consolidatedInner(e, t) {
-    // The per-cycle received amounts only include freshAmount (cycle opening
-    // balance), but the company actually paid totalCredit (which includes the
-    // overspend compensation for the previous cycle). For the CONSOLIDATED
-    // view, we need to add back all those compensation amounts so the overall
-    // received/balance figures match what was actually credited by the company.
-    var totalCompensation = 0;
-    (e.recoupments || []).forEach(function(r) {
-      if (!r.final && r.settled === "yes") totalCompensation += parseFloat(r.overspentAmount) || 0;
+    // Compute TRUE consolidated totals. The stored txn.amount for recoupment
+    // credits is freshAmount (correct for cycle-level), but the company
+    // actually credited totalCredit. We recompute from scratch:
+    var trueRecv = 0, trueExp = 0;
+    (e.txns || []).forEach(function(tx) {
+      if (tx.kind === "received") {
+        if (tx.recoupmentId) {
+          // Use totalCredit from the recoupment record, not tx.amount
+          var rec = (e.recoupments || []).filter(function(r) { return r.id === tx.recoupmentId; })[0];
+          trueRecv += rec ? (parseFloat(rec.totalCredit) || 0) : (parseFloat(tx.amount) || 0);
+        } else {
+          trueRecv += parseFloat(tx.amount) || 0;
+        }
+      } else {
+        trueExp += parseFloat(tx.amount) || 0;
+      }
     });
-    // Include final closure settlement so the consolidated balance reaches
-    // zero once the imprest is fully closed:
-    //   - kind="return": officer returned unspent money → effectively an
-    //     additional expense (money left the officer's hands).
-    //   - kind="reimburse" + stage="done": company reimbursed overspend →
-    //     effectively additional received (money came to the officer).
+    // Include closure settlement
     var closureAdj = closureAdjustment(e);
-    var adjRecv = t.recv + totalCompensation + closureAdj.recv;
-    var adjExp = t.exp + closureAdj.exp;
-    var adjBalance = adjRecv - adjExp;
-    var totalsRow = '<div class="grid grid-3" style="margin:0 0 14px">' + statCard("＋", "Total Received", "Rs. " + inr(adjRecv)) + statCard("－", "Total Expense", "Rs. " + inr(adjExp)) + statCard("=", "Balance", "Rs. " + inr(adjBalance)) + "</div>";
+    trueRecv += closureAdj.recv;
+    trueExp += closureAdj.exp;
+    var trueBalance = trueRecv - trueExp;
+    var totalsRow = '<div class="grid grid-3" style="margin:0 0 14px">' + statCard("＋", "Total Received", "Rs. " + inr(trueRecv)) + statCard("－", "Total Expense", "Rs. " + inr(trueExp)) + statCard("=", "Balance", "Rs. " + inr(trueBalance)) + "</div>";
     var notes = [];
-    if (totalCompensation > 0) notes.push("Includes Rs. " + inr(totalCompensation) + " in overspend compensations from recoupments.");
     if (closureAdj.recv > 0) notes.push("Includes Rs. " + inr(closureAdj.recv) + " reimbursement received upon closure.");
     if (closureAdj.exp > 0) notes.push("Includes Rs. " + inr(closureAdj.exp) + " returned to company upon closure.");
     if (notes.length) {
       totalsRow += '<div class="hint" style="margin-bottom:10px;padding:8px 12px;border-left:3px solid var(--gold-400);background:var(--surface-2)">' + notes.join("<br>") + "</div>";
     }
-    var rows = renderLedger(e); // whole-entry ledger, keeps cycle dividers
-    var bal = '<div class="balance-line" style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-weight:700"><span>Overall balance</span><span style="color:' + (adjBalance < 0 ? "var(--bad-500)" : adjBalance === 0 ? "var(--ok-500)" : "var(--ok-500)") + '">Rs. ' + inr(adjBalance) + (adjBalance < 0 ? " (overspent)" : adjBalance === 0 ? " (settled)" : "") + "</span></div>";
-    // Closure settlement line in the ledger
+    // Build a formatted ledger for print/PDF
+    var rows = renderLedger(e);
+    var bal = '<div class="balance-line" style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-weight:700"><span>Overall balance</span><span style="color:' + (trueBalance < 0 ? "var(--bad-500)" : trueBalance === 0 ? "var(--ok-500)" : "var(--ok-500)") + '">Rs. ' + inr(trueBalance) + (trueBalance < 0 ? " (overspent)" : trueBalance === 0 ? " (settled)" : "") + "</span></div>";
+    // Closure settlement line
     var closureLine = "";
     if (e.closure && e.closure.stage === "done") {
       var cAmt = parseFloat(e.closure.amount) || 0;
@@ -1507,7 +1528,7 @@
         '<div class="txn-main"><div class="txn-title">' + cLabel + ' (Closure)</div><div class="hint">' + fmtDate(e.closure.date) + " · " + (e.closure.mode === "online" ? "Online · UTR " + esc(e.closure.utr || "—") : "Cash") + "</div></div>" +
         '<div class="mono txn-amt">Rs. ' + inr(cAmt) + '</div><span class="badge badge-ok">Settled</span></div>';
     }
-    var downloadBtns = '<div class="btn-row" style="margin:12px 0"><button class="btn btn-ghost btn-sm" id="consolPrint">🖶 Print Statement</button></div>';
+    var downloadBtns = '<div class="btn-row" style="margin:12px 0"><button class="btn btn-ghost btn-sm" id="consolPrint">🖶 Print</button><button class="btn btn-gold btn-sm" id="consolPdf">⬇ PDF</button></div>';
     return totalsRow + '<div class="hint" style="margin-bottom:10px">Every transaction from all cycles, in order.</div>' + (rows || '<div class="hint">No transactions yet.</div>') + closureLine + bal + downloadBtns;
   }
   // Compute how much the closure settlement adds to received/expense sides
@@ -2549,10 +2570,10 @@
     wireVouchers(e, activeCycle);
     // Consolidated print
     byId("consolPrint", function(el) {
-      el.onclick = function() {
-        var html = renderLedger(e);
-        openPrintWindow('<div class="pg"><h2 style="text-align:center;font-family:serif">Consolidated Account Statement — ' + esc(e.subject || "") + '</h2>' + (html || "No transactions.") + "</div>");
-      };
+      el.onclick = function() { openPrintWindow(consolidatedPrintHtml(e)); };
+    });
+    byId("consolPdf", function(el) {
+      el.onclick = function() { downloadHtmlPdf(consolidatedPrintHtml(e), "Consolidated_" + (e.letter.refNumber || e.id) + ".pdf", { widthPx: 794 }); };
     });
   }
   function hydrateEditors(bodyHtml) {
@@ -2918,7 +2939,7 @@
         // a recoupment in progress; only then do the entry fields appear.
         host.innerHTML = '<div class="closure-card"><div class="card-head"><h3>Process Recoupment</h3></div>' +
           '<div class="hint" style="margin-bottom:10px">This cycle is used up (balance Rs. ' + inr(t.balance) + "). Tick below to begin recording the recoupment.</div>" +
-          '<label class="chk-row" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer"><input type="checkbox" id="rc_submitted"> <span>Recoupment Submitted</span></label>' +
+          '<label style="display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;cursor:pointer;font-size:14px"><input type="checkbox" id="rc_submitted" style="width:18px;height:18px;accent-color:var(--gold-400)"> <span>Recoupment Submitted</span></label>' +
           '<div id="rc_formHost"></div>' +
           '<button class="btn btn-ghost btn-sm" id="act_cancel" style="margin-top:6px">← Back</button></div>';
         byId("act_cancel", function(el) {
@@ -3861,6 +3882,97 @@
       "</div>";
   }
   // Blank (unfilled) Form-2, used by the Download Formats page — shares the
+  function consolidatedPrintHtml(e) {
+    var p = docUser();
+    var cycles = e.type === "PI" ? cyclesOf(e) : null;
+    // Compute true consolidated totals using totalCredit for recoupment txns
+    var trueRecv = 0, trueExp = 0;
+    (e.txns || []).forEach(function(tx) {
+      if (tx.kind === "received") {
+        if (tx.recoupmentId) {
+          var rec = (e.recoupments || []).filter(function(r) { return r.id === tx.recoupmentId; })[0];
+          trueRecv += rec ? (parseFloat(rec.totalCredit) || 0) : (parseFloat(tx.amount) || 0);
+        } else {
+          trueRecv += parseFloat(tx.amount) || 0;
+        }
+      } else {
+        trueExp += parseFloat(tx.amount) || 0;
+      }
+    });
+    var cAdj = closureAdjustment(e);
+    trueRecv += cAdj.recv; trueExp += cAdj.exp;
+    var trueBalance = trueRecv - trueExp;
+    // Build table rows — all transactions across all cycles
+    var sno = 0;
+    var tableRows = (e.txns || []).map(function(tx) {
+      sno++;
+      var isRecv = tx.kind === "received";
+      var desc = isRecv ? (tx.recoupmentId ? "Recoupment received" : "Amount received as " + (e.type || "TI")) : (tx.nameOfWork || tx.paidTo || "Expense");
+      // For recoupment txns, show totalCredit
+      var amt = parseFloat(tx.amount) || 0;
+      if (isRecv && tx.recoupmentId) {
+        var rec2 = (e.recoupments || []).filter(function(r) { return r.id === tx.recoupmentId; })[0];
+        if (rec2) amt = parseFloat(rec2.totalCredit) || 0;
+      }
+      // Find which cycle this txn belongs to
+      var cycNo = "";
+      if (cycles) {
+        for (var ci = 0; ci < cycles.length; ci++) {
+          for (var ti = 0; ti < cycles[ci].txns.length; ti++) {
+            if (cycles[ci].txns[ti].id === tx.id) { cycNo = cycles[ci].no; break; }
+          }
+          if (cycNo) break;
+        }
+      }
+      return "<tr>" +
+        "<td>" + sno + "</td>" +
+        "<td>" + fmtDate(tx.date) + "</td>" +
+        "<td>" + (cycNo ? "C" + cycNo : "") + "</td>" +
+        '<td style="text-align:left">' + esc(desc) + "</td>" +
+        '<td class="num">' + (isRecv ? inr(amt) : "") + "</td>" +
+        '<td class="num">' + (!isRecv ? inr(amt) : "") + "</td>" +
+        "</tr>";
+    }).join("");
+    // Closure row
+    if (e.closure && e.closure.stage === "done") {
+      sno++;
+      var cAmt = parseFloat(e.closure.amount) || 0;
+      var cDesc = e.closure.kind === "return" ? "Returned to company (Closure)" : "Reimbursement received (Closure)";
+      var isRecvC = e.closure.kind === "reimburse";
+      tableRows += "<tr style=\"font-weight:700;background:#f8f4e8\">" +
+        "<td>" + sno + "</td>" +
+        "<td>" + fmtDate(e.closure.date) + "</td>" +
+        "<td></td>" +
+        '<td style="text-align:left">' + esc(cDesc) + "</td>" +
+        '<td class="num">' + (isRecvC ? inr(cAmt) : "") + "</td>" +
+        '<td class="num">' + (!isRecvC ? inr(cAmt) : "") + "</td>" +
+        "</tr>";
+    }
+    var css = '<style>' +
+      'body{font-family:"Times New Roman",Georgia,serif;font-size:13px;color:#1a1a1a}' +
+      '.cs-page{padding:30px 40px;background:#fff;max-width:760px;margin:0 auto}' +
+      '.cs-title{font-size:16px;font-weight:700;text-align:center;margin:0 0 4px;text-decoration:underline}' +
+      '.cs-sub{text-align:center;font-size:12px;color:#555;margin-bottom:16px}' +
+      '.cs-info{font-size:12px;margin-bottom:14px}' +
+      '.cs-tbl{width:100%;border-collapse:collapse;font-size:12px}' +
+      '.cs-tbl th,.cs-tbl td{border:1px solid #333;padding:5px 8px}' +
+      '.cs-tbl th{background:#e8e0c8;font-weight:700;text-align:center}' +
+      '.cs-tbl .num{text-align:right;font-family:monospace}' +
+      '.cs-totals{margin-top:14px;font-size:13px}' +
+      '.cs-sign{text-align:right;margin-top:40px;font-weight:700}' +
+      '</style>';
+    return css + '<div class="cs-page">' +
+      '<div class="cs-title">CONSOLIDATED ACCOUNT STATEMENT</div>' +
+      '<div class="cs-sub">' + esc(e.subject || "") + '</div>' +
+      '<div class="cs-info"><b>Name:</b> ' + esc(p.name || "") + ' &nbsp;&nbsp; <b>Designation:</b> ' + esc(p.designation || "") + ' &nbsp;&nbsp; <b>SAP No:</b> ' + esc(p.sapNo || "") + '<br><b>Type:</b> ' + e.type + ' &nbsp;&nbsp; <b>Ref:</b> ' + esc(e.letter.refNumber || "") + ' &nbsp;&nbsp; <b>Sanctioned Amount:</b> Rs. ' + inr(e.amount) + '</div>' +
+      '<table class="cs-tbl"><thead><tr>' +
+        '<th>Sr</th><th>Date</th><th>Cycle</th><th style="width:40%">Particulars</th><th>Received (Rs.)</th><th>Expense (Rs.)</th>' +
+      '</tr></thead><tbody>' + tableRows +
+      '<tr style="font-weight:700;background:#f0ece0"><td colspan="4" style="text-align:right">TOTAL</td><td class="num">' + inr(trueRecv) + '</td><td class="num">' + inr(trueExp) + '</td></tr>' +
+      '</tbody></table>' +
+      '<div class="cs-totals"><b>Balance:</b> Rs. ' + inr(trueBalance) + (trueBalance === 0 ? " (Settled)" : "") + '</div>' +
+      '<div class="cs-sign">' + esc(p.name || "") + ",<br>" + esc(p.designation || "") + "<br>" + esc(p.office || "") + '</div></div>';
+  }
   // exact same header/table/CSS classes as the filled version above so the
   // two can never drift apart.
   function blankForm2Html() {
@@ -5353,8 +5465,11 @@
   })();
   initAtmos();
   applyAtmos();
-  // Try auto-login FIRST. If a remembered device token exists and is valid,
-  // skip the auth screen entirely. Only show auth if auto-login fails/absent.
+  // Show a loading state immediately so the page isn't blank while auto-login runs
+  (function() {
+    var app = document.getElementById("app");
+    if (app) app.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div></div>';
+  })();
   tryAutoLogin().then(function(ok) {
     if (!ok) render();
   });
