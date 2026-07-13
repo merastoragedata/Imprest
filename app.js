@@ -502,12 +502,28 @@
       });
     });
     var entriesCall = apiGet("listAllEntries", {}).then(function(r) {
-      return r.ok ? r.entries : [];
-    });
+      if (r.ok && r.entries && r.entries.length) return r.entries;
+      return perEmployeeEntries(emps);
+    }).catch(function() { return perEmployeeEntries(emps); });
     return Promise.all([entriesCall, Promise.all(expCalls)]).then(function(res) {
-      state.allEntries = res[0].sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+      state.allEntries = res[0].sort(function(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); });
       state.allExpenses = [].concat.apply([], res[1]);
     });
+  }
+  // Fallback for admin "view all": fetch each approved employee's entries
+  // one by one and tag with owner — used when the bulk listAllEntries route
+  // is unavailable or returns nothing.
+  function perEmployeeEntries(emps) {
+    var perEmp = emps.map(function(emp) {
+      return apiGet("listEntries", { username: emp.username }).then(function(er) {
+        return (er.ok ? er.entries : []).map(function(x) {
+          x._owner = emp.username;
+          x._ownerName = emp.name || emp.username;
+          return x;
+        });
+      }).catch(function() { return []; });
+    });
+    return Promise.all(perEmp).then(function(lists) { return [].concat.apply([], lists); });
   }
   function doLogout() {
     try { localStorage.removeItem("imprestRemember"); } catch (_e) {}
@@ -1372,9 +1388,6 @@
     }
     var canRevertClosure = !!e.closure;
     var revertBtn = canRevertClosure ? '<button class="btn btn-ghost btn-sm" id="revertClosure" style="margin-top:8px">↺ Revert closure</button>' : "";
-    // Final-settlement recoupment (shown in closure context)
-    var finalRecoup = (e.recoupments || []).filter(function(r) { return r.final; });
-    var finalHtml = finalRecoup.length ? finalRecoup.map(function(r) { return historyItemHtml({ kind: "recoup", data: r }, e); }).join("") : "";
     // Final settlement summary with closure adjustment
     var settlementSummary = "";
     if (e.closure && e.closure.stage === "done") {
@@ -1401,7 +1414,7 @@
         (notes.length ? '<div class="hint" style="margin-bottom:10px;padding:8px 12px;border-left:3px solid var(--gold-400);background:var(--surface-2)">' + notes.join("<br>") + "</div>" : "") +
         '<div class="balance-line" style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-weight:700"><span>Final balance</span><span style="color:var(--ok-500)">Rs. ' + inr(fBal) + (fBal === 0 ? " (settled)" : "") + "</span></div>";
     }
-    return processSection + '<div class="cat-head" style="margin-top:18px">Closure Details</div>' + closureHtml + finalHtml + settlementSummary + revertBtn;
+    return processSection + '<div class="cat-head" style="margin-top:18px">Closure Details</div>' + closureHtml + settlementSummary + revertBtn;
   }
   function accountsInner(e, t) {
     // TI uses a simple flat layout — no tabs needed for a single-cycle imprest.
@@ -1630,13 +1643,26 @@
     if (it.kind === "closure") {
       var c = it.data;
       var label = c.kind === "return" ? "Closure — Amount Returned" : "Closure — Reimbursement";
-      var badge = c.stage === "done" ? '<span class="badge badge-ok">Done</span>' : '<span class="badge badge-gold">Pending</span>';
+      var badge = c.stage === "done" ? '<span class="badge badge-ok">Approved & Closed</span>' : c.notApprovedRemark ? '<span class="badge badge-bad">Not Approved</span>' : '<span class="badge badge-gold">Pending Approval</span>';
       var body = '<div class="closure-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>' + label + "</b>" + badge + "</div>" + '<div class="hint">Rs. ' + inr(c.amount) + (c.stage === "done" ? " · " + fmtDate(c.date) + (c.mode === "online" ? " · UTR " + esc(c.utr || "—") : " · Cash") : "") + "</div>";
-      if (c.stage !== "done" && c.kind === "reimburse") {
-        body += '<button class="btn btn-primary btn-sm" id="hist_markReimbursed" style="margin-top:8px">Mark Reimbursed</button><div id="reimburseFormHost"></div>';
+      if (c.notApprovedRemark) {
+        body += '<div class="hint" style="margin-top:6px;padding:8px 12px;border-left:3px solid var(--bad-500);background:var(--surface-2)"><b>Not approved:</b> ' + esc(c.notApprovedRemark) + "</div>";
       }
-      if (c.stage === "done") {
-        body += '<button class="btn btn-ghost btn-xs" id="hist_editClosure" style="margin-top:8px">Edit closure</button><div id="editClosureFormHost"></div>';
+      // Reimburse case: still needs the reimbursement amount/date recorded first
+      if (c.stage !== "done" && c.kind === "reimburse") {
+        body += '<button class="btn btn-primary btn-sm" id="hist_markReimbursed" style="margin-top:8px">Record Reimbursement</button><div id="reimburseFormHost"></div>';
+      }
+      // Approval controls — shown while pending (return case, or reimburse
+      // after amount recorded). Lets the user self-approve to close, or note
+      // why it wasn't approved (with the approve button still available).
+      if (c.stage !== "done") {
+        body += '<div class="btn-row" style="margin-top:10px;flex-wrap:wrap">' +
+          '<button class="btn btn-primary btn-sm" id="hist_markApproved">✓ Mark Approved & Close</button>' +
+          '<button class="btn btn-ghost btn-sm" id="hist_notApproved">Add "not approved" remark</button>' +
+          "</div><div id='notApprovedHost'></div>";
+      } else {
+        // Done — offer undo back to pending, plus edit
+        body += '<div class="btn-row" style="margin-top:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-xs" id="hist_undoApproval">↺ Undo approval (reopen)</button><button class="btn btn-ghost btn-xs" id="hist_editClosure">Edit closure</button></div><div id="editClosureFormHost"></div>';
       }
       return body + "</div>";
     }
@@ -1678,6 +1704,50 @@
     byId("hist_markReimbursed", function(el) {
       el.onclick = function() {
         openReimburseForm(e);
+      };
+    });
+    byId("hist_markApproved", function(el) {
+      el.onclick = function() {
+        // Self-approve: finalise the closure and close the imprest.
+        if (!e.closure) return;
+        // For a reimburse that hasn't recorded its amount/date yet, stamp today
+        if (!e.closure.date) e.closure.date = todayISO();
+        e.closure.stage = "done";
+        e.closure.approvedBy = (state.user && state.user.name) || "self";
+        e.closure.approvedDate = todayISO();
+        delete e.closure.notApprovedRemark;
+        e.status = "Closed";
+        saveEntry(e);
+        toast("Approved — imprest closed.", "ok");
+        render();
+      };
+    });
+    byId("hist_notApproved", function(el) {
+      el.onclick = function() {
+        var host = document.getElementById("notApprovedHost");
+        if (!host) return;
+        host.innerHTML = '<div class="field" style="margin-top:8px"><label>Reason for not approving</label><textarea id="na_remark" placeholder="e.g. Awaiting bill verification by Accounts">' + esc(e.closure.notApprovedRemark || "") + '</textarea></div><div class="btn-row"><button class="btn btn-ghost btn-sm" id="na_cancel">← Back</button><button class="btn btn-primary btn-sm" id="na_save">Save remark</button></div>';
+        byId("na_cancel", function(b) { b.onclick = function() { host.innerHTML = ""; }; });
+        byId("na_save", function(b) {
+          b.onclick = function() {
+            e.closure.notApprovedRemark = val("na_remark");
+            saveEntry(e);
+            toast("Remark saved. Imprest stays open until approved.", "ok");
+            render();
+          };
+        });
+      };
+    });
+    byId("hist_undoApproval", function(el) {
+      el.onclick = function() {
+        if (!e.closure) return;
+        e.closure.stage = "pending";
+        delete e.closure.approvedBy;
+        delete e.closure.approvedDate;
+        e.status = "Sent to Accounts";
+        saveEntry(e);
+        toast("Approval undone — imprest reopened.", "ok");
+        render();
       };
     });
     byId("hist_editClosure", function(el) {
@@ -3539,17 +3609,47 @@
       document.head.appendChild(s);
     });
   }
+  // Try a list of script URLs in order until one loads and the expected
+  // global appears. Returns a rejected promise only if ALL fail.
+  function loadScriptWithFallback(urls, checkGlobal) {
+    var i = 0;
+    function trynext() {
+      if (checkGlobal()) return Promise.resolve();
+      if (i >= urls.length) return Promise.reject(new Error("all sources failed"));
+      var url = urls[i++];
+      return loadScript(url).then(function() {
+        if (checkGlobal()) return;
+        return trynext();
+      }).catch(function() { return trynext(); });
+    }
+    return trynext();
+  }
+  function docxLib() {
+    return (typeof docx !== "undefined") ? docx : (window.docx || null);
+  }
   function ensureDocx() {
-    if (typeof docx !== "undefined") return Promise.resolve();
-    return loadScript("https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js");
+    if (docxLib()) { window.docx = docxLib(); return Promise.resolve(); }
+    return loadScriptWithFallback([
+      "https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js",
+      "https://unpkg.com/docx@8.5.0/build/index.umd.js",
+      "https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"
+    ], docxLib).then(function() { window.docx = docxLib(); });
   }
   function ensureJsPdf() {
     if (window.jspdf) return Promise.resolve();
-    return loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    return loadScriptWithFallback([
+      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+      "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js",
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
+    ], function() { return !!window.jspdf; });
   }
   function ensureXlsx() {
     if (window.XLSX) return Promise.resolve();
-    return loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    return loadScriptWithFallback([
+      "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+      "https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js",
+      "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+    ], function() { return !!window.XLSX; });
   }
   // ExcelJS (unlike the free SheetJS build) can actually WRITE cell borders,
   // fonts, merges, wrap-text and embedded images — used for Form-2 and
