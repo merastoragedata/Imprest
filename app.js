@@ -436,6 +436,12 @@
   function finishLogin(profile, remember) {
     state.isAdmin = !!profile.isAdmin;
     state.user = profile;
+    // ALWAYS persist the session locally so a page refresh doesn't log the
+    // user out. The "Keep me signed in" checkbox additionally requests a
+    // long-lived server-verified token (survives browser restarts securely).
+    try {
+      localStorage.setItem("imprestSession", JSON.stringify({ username: profile.username, profile: profile, at: Date.now() }));
+    } catch (_e) {}
     var after = function() {
       state.loading = false;
       state.screen = profileComplete(profile) ? "home" : "profile";
@@ -460,6 +466,16 @@
   }
   // Auto-login on page load if a remembered device token is present.
   function tryAutoLogin() {
+    // 1) Fast path: session cache (survives page refresh, expires after 12h)
+    var session;
+    try {
+      session = JSON.parse(localStorage.getItem("imprestSession") || "null");
+    } catch (_e) { session = null; }
+    if (session && session.profile && session.at && (Date.now() - session.at) < 12 * 60 * 60 * 1000) {
+      finishLogin(session.profile, false);
+      return Promise.resolve(true);
+    }
+    // 2) Long-lived path: server-verified remember-device token
     var saved;
     try {
       saved = JSON.parse(localStorage.getItem("imprestRemember") || "null");
@@ -495,6 +511,7 @@
   }
   function doLogout() {
     try { localStorage.removeItem("imprestRemember"); } catch (_e) {}
+    try { localStorage.removeItem("imprestSession"); } catch (_e) {}
     state.adminOwnView = false;
     state.user = null;
     state.isAdmin = false;
@@ -540,8 +557,9 @@
     if (state.adminEditUser) return renderAdminEditProfile();
     var adminData = renderAdminHome();
     var listCount = (state.allEntries || []).length;
-    var allListBody = listCount ? adminData.list : '<div class="hint" style="padding:16px">Loading all employees\' entries…<br><br>If this persists, the backend might not support "listAllEntries". Check that your Code.gs has this route deployed.</div>';
-    var allList = collapse("adminAllList", "All Employees — PI & TI (view only) (" + listCount + ")", '<div class="hint" style="margin-bottom:12px">Grouped by Financial Year (latest first), then by employee.</div>' + allListBody);
+    var allListBody = listCount ? adminData.list : '<div class="hint" style="padding:16px">No entries found. If employees have created PI/TI entries, check that your deployed Code.gs has the "listAllEntries" route.</div>';
+    var allList = '<div class="card" style="margin-top:14px"><div class="card-head"><h3>All Employees — PI & TI (view only) (' + listCount + ')</h3></div>' +
+      '<div class="hint" style="margin-bottom:12px">Grouped by Financial Year. Click any entry to view/download/print.</div>' + allListBody + '</div>';
     return userMgmt + allList;
   }
   function renderAdminEditProfile() {
@@ -716,6 +734,14 @@
       '<div id="precip"></div>' +
       '<div class="flash"></div>';
     document.body.insertBefore(sky, document.body.firstChild);
+    // Subtle orbiting particles behind the content
+    if (!document.getElementById("orbitalField")) {
+      var orbF = document.createElement("div");
+      orbF.id = "orbitalField";
+      orbF.className = "orbital-field";
+      orbF.innerHTML = '<div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>';
+      document.body.insertBefore(orbF, sky.nextSibling);
+    }
     seedStars();
   }
   function villageSvg() {
@@ -1494,9 +1520,15 @@
     (e.txns || []).forEach(function(tx) {
       if (tx.kind === "received") {
         if (tx.recoupmentId) {
-          // Use totalCredit from the recoupment record, not tx.amount
+          // Use totalCredit from the recoupment record; fall back to the
+          // txn's own stored bifurcation fields for older data.
           var rec = (e.recoupments || []).filter(function(r) { return r.id === tx.recoupmentId; })[0];
-          trueRecv += rec ? (parseFloat(rec.totalCredit) || 0) : (parseFloat(tx.amount) || 0);
+          if (rec) {
+            trueRecv += parseFloat(rec.totalCredit) || 0;
+          } else {
+            var full = (parseFloat(tx.overspentAmount) || 0) + (parseFloat(tx.freshAmount) || 0);
+            trueRecv += full > 0 ? full : (parseFloat(tx.amount) || 0);
+          }
         } else {
           trueRecv += parseFloat(tx.amount) || 0;
         }
@@ -1563,14 +1595,15 @@
       return new Date(a.date) - new Date(b.date);
     });
     if (cycle) {
-      // Within a single cycle, no internal cycle dividers.
+      // Within a single cycle, no internal cycle dividers; recoupment rows
+      // show only the fresh (cycle-opening) portion.
       return all.map(function(tx) { return txnRow(e, tx); }).join("");
     }
     var html = "";
     var cycleSeen = 1;
     html += '<div class="cycle-divider">Cycle ' + cycleSeen + "</div>";
     all.forEach(function(tx) {
-      html += txnRow(e, tx);
+      html += txnRow(e, tx, true); // consolidated: show full recoupment credit
       if (tx.recoupmentId) {
         cycleSeen++;
         html += '<div class="cycle-divider">Cycle ' + cycleSeen + " begins</div>";
@@ -1684,13 +1717,21 @@
       };
     });
   }
-  function txnRow(e, tx) {
+  function txnRow(e, tx, showFull) {
     var thumb = tx.image ? '<img class="thumb" src="' + tx.image + '" data-viewatt="' + tx.id + '" title="Click to view / zoom / download">' : "";
     if (tx.kind === "received") {
       var isRecoup = !!tx.recoupmentId;
       var title = isRecoup ? "Recoupment Credit" : "Amount Received";
       var meta = isRecoup ? "Settled overspend Rs. " + inr(tx.overspentAmount || 0) + " + Fresh Rs. " + inr(tx.freshAmount || 0) + " · " + (tx.mode === "online" ? "Online · UTR " + esc(tx.utr || "—") : "Cash") : "Amount received as " + e.type + " · " + (tx.mode === "online" ? "Online · UTR " + esc(tx.utr || "—") : "Cash");
-      return '<div class="txn recv">' + thumb + '<div class="txn-main"><div class="txn-title">' + title + (isRecoup ? ' <span class="recoup-badge">Recoupment</span>' : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(tx.amount) + '</div><span class="badge badge-ok">Received</span>' + (isRecoup ? "" : '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>') + "</div>";
+      // In the consolidated (whole-entry) view, show the FULL amount the
+      // company credited (totalCredit) — in cycle views, show only the
+      // portion that opened that cycle (freshAmount, stored as tx.amount).
+      var showAmt = parseFloat(tx.amount) || 0;
+      if (isRecoup && showFull) {
+        var fullAmt = (parseFloat(tx.overspentAmount) || 0) + (parseFloat(tx.freshAmount) || 0);
+        if (fullAmt > 0) showAmt = fullAmt;
+      }
+      return '<div class="txn recv">' + thumb + '<div class="txn-main"><div class="txn-title">' + title + (isRecoup ? ' <span class="recoup-badge">Recoupment</span>' : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(showAmt) + '</div><span class="badge badge-ok">Received</span>' + (isRecoup ? "" : '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>') + "</div>";
     }
     var vno = displayVoucherNo(tx);
     var billYes = tx.billAvailable === "yes";
@@ -3907,7 +3948,7 @@
     var tableRows = (e.txns || []).map(function(tx) {
       sno++;
       var isRecv = tx.kind === "received";
-      var desc = isRecv ? (tx.recoupmentId ? "Recoupment received" : "Amount received as " + (e.type || "TI")) : (tx.nameOfWork || tx.paidTo || "Expense");
+      var desc = isRecv ? (tx.recoupmentId ? "Recoupment received" : "Amount received as " + (e.type || "TI")) : esc(tx.nameOfWork || tx.paidTo || "Expense") + (tx.billNo ? " (V/" + tx.billNo + ")" : "") + (tx.paidTo && tx.nameOfWork ? " — " + esc(tx.paidTo) : "");
       // For recoupment txns, show totalCredit
       var amt = parseFloat(tx.amount) || 0;
       if (isRecv && tx.recoupmentId) {
@@ -5465,12 +5506,19 @@
   })();
   initAtmos();
   applyAtmos();
-  // Show a loading state immediately so the page isn't blank while auto-login runs
-  (function() {
-    var app = document.getElementById("app");
-    if (app) app.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div></div>';
-  })();
+  // Show loading spinner while checking for saved login
+  state.loading = true;
+  render();
   tryAutoLogin().then(function(ok) {
-    if (!ok) render();
+    if (!ok) {
+      state.loading = false;
+      state.screen = "auth";
+      render();
+    }
+    // if ok, finishLogin() already called render()
+  }).catch(function() {
+    state.loading = false;
+    state.screen = "auth";
+    render();
   });
 })();
