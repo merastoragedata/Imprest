@@ -1379,6 +1379,24 @@
       processSection = '<button class="btn btn-danger btn-block" id="processPIClose" style="font-size:15px;padding:14px;margin-bottom:12px">Process PI Closure (final)</button>';
     }
     processSection = '<div class="cat-head">Process PI Closure</div>' + statusLine + processSection + '<div id="actionFormHost"></div>';
+    // ── Last cycle's closed data (mirrors how the Recoupment tab shows the
+    // cycle that was settled). The final cycle is closed by the PI Closure,
+    // so show that cycle's account snapshot here. ──
+    var cycles = cyclesOf(e);
+    var lastCycle = cycles[cycles.length - 1];
+    var lastCycleHtml = "";
+    if (e.closure) {
+      var lct = lastCycle.totals;
+      var lcExp = lastCycle.txns.filter(function(x){ return x.kind === "expense"; }).length;
+      lastCycleHtml = '<div class="cat-head" style="margin-top:18px">Final Cycle (Cycle ' + lastCycle.no + ') — Closed Snapshot</div>' +
+        '<div class="grid grid-4" style="margin:0 0 10px">' +
+          statCard("＋", "Received", "Rs. " + inr(lct.recv)) +
+          statCard("－", "Expense", "Rs. " + inr(lct.exp)) +
+          statCard("=", "Balance", "Rs. " + inr(lct.balance)) +
+          statCard("📋", "Vouchers", String(lcExp)) + "</div>" +
+        '<div class="hint" style="margin-bottom:6px">Statement of the cycle that was closed:</div>' +
+        (renderLedger(e, lastCycle) || '<div class="hint">No transactions.</div>');
+    }
     // Closure Details
     var closureHtml = "";
     if (e.closure) {
@@ -1386,13 +1404,17 @@
     } else {
       closureHtml = '<div class="hint">No closure yet.</div>';
     }
-    var canRevertClosure = !!e.closure;
-    var revertBtn = canRevertClosure ? '<button class="btn btn-ghost btn-sm" id="revertClosure" style="margin-top:8px">↺ Revert closure</button>' : "";
+    // Undo PI Closure — fully reopens: reverts status, clears closure record,
+    // and removes the final closing recoupment marker so a new cycle/closure
+    // can be processed again.
+    var undoBtn = "";
+    if (e.closure) {
+      undoBtn = '<button class="btn btn-ghost btn-sm" id="undoPIClosure" style="margin-top:10px">↺ Undo PI Closure (reopen imprest)</button>';
+    }
     // Final settlement summary with closure adjustment
     var settlementSummary = "";
     if (e.closure && e.closure.stage === "done") {
       var t = totals(e);
-      // Compute true received using totalCredit for recoupment txns
       var fRecv = 0;
       (e.txns || []).forEach(function(tx) {
         if (tx.kind === "received") {
@@ -1406,7 +1428,6 @@
       fRecv += cAdj.recv;
       var fExp = t.exp + cAdj.exp, fBal = fRecv - fExp;
       var notes = [];
-      if (totalCompensation > 0) notes.push("Includes Rs. " + inr(totalCompensation) + " in overspend compensations.");
       if (cAdj.recv > 0) notes.push("Includes Rs. " + inr(cAdj.recv) + " reimbursement upon closure.");
       if (cAdj.exp > 0) notes.push("Includes Rs. " + inr(cAdj.exp) + " returned to company upon closure.");
       settlementSummary = '<div class="cat-head" style="margin-top:14px">Final Settlement</div>' +
@@ -1414,7 +1435,7 @@
         (notes.length ? '<div class="hint" style="margin-bottom:10px;padding:8px 12px;border-left:3px solid var(--gold-400);background:var(--surface-2)">' + notes.join("<br>") + "</div>" : "") +
         '<div class="balance-line" style="display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);font-weight:700"><span>Final balance</span><span style="color:var(--ok-500)">Rs. ' + inr(fBal) + (fBal === 0 ? " (settled)" : "") + "</span></div>";
     }
-    return processSection + '<div class="cat-head" style="margin-top:18px">Closure Details</div>' + closureHtml + settlementSummary + revertBtn;
+    return processSection + lastCycleHtml + '<div class="cat-head" style="margin-top:18px">Closure Details</div>' + closureHtml + settlementSummary + undoBtn;
   }
   function accountsInner(e, t) {
     // TI uses a simple flat layout — no tabs needed for a single-cycle imprest.
@@ -1801,15 +1822,15 @@
         var fullAmt = (parseFloat(tx.overspentAmount) || 0) + (parseFloat(tx.freshAmount) || 0);
         if (fullAmt > 0) showAmt = fullAmt;
       }
-      return '<div class="txn recv">' + thumb + '<div class="txn-main"><div class="txn-title">' + title + (isRecoup ? ' <span class="recoup-badge">Recoupment</span>' : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(showAmt) + '</div><span class="badge badge-ok">Received</span>' + (isRecoup ? "" : '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>') + "</div>";
+      return '<div class="txn recv">' + thumb + '<div class="txn-main"><div class="txn-title">' + formatParticulars(tx, e.type) + (isRecoup ? ' <span class="recoup-badge">Recoupment</span>' : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(showAmt) + '</div><span class="badge badge-ok">Received</span>' + (isRecoup ? "" : '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>') + "</div>";
     }
     var vno = displayVoucherNo(tx);
     var billYes = tx.billAvailable === "yes";
     var billLater = tx.billAvailable === "no" && tx.billStage === "later";
     var billFill = tx.billAvailable === "no" && tx.billStage === "fill";
-    var meta = (tx.paid === "online" ? "Online · UTR " + esc(tx.utr || "—") : "Cash") + (billYes ? " · Bill " + esc(tx.billNo || "—") : "") + (tx.paidTo ? " · Paid to " + esc(tx.paidTo) : "");
+    var meta = (tx.paid === "online" ? "Online · UTR " + esc(tx.utr || "—") : "Cash") + (billYes ? " · Bill " + esc(tx.billNo || "—") : "");
     var right = billYes ? '<span class="badge badge-info">Expense</span>' : billLater ? '<span class="flag-nobill">Bill pending</span>' : '<span class="flag-nobill">Pavati Available</span>';
-    return '<div class="txn exp">' + thumb + '<div class="txn-main"><div class="txn-title">' + esc(tx.nameOfWork || tx.paidTo || "Expense") + (vno ? ' <span class="hint">(Bill ' + esc(vno) + ")</span>" : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(tx.amount) + "</div>" + right + '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>' + (billFill ? pavatiBlock(e, tx) : "") + "</div>";
+    return '<div class="txn exp">' + thumb + '<div class="txn-main"><div class="txn-title">' + esc(formatParticulars(tx, e.type)) + (vno ? ' <span class="hint">(Bill ' + esc(vno) + ")</span>" : "") + '</div><div class="hint">' + fmtDate(tx.date) + " · " + meta + "</div></div>" + '<div class="mono txn-amt">Rs. ' + inr(tx.amount) + "</div>" + right + '<div class="txn-actions"><button class="btn btn-ghost btn-xs" data-txnedit="' + tx.id + '">Edit</button><button class="btn btn-danger btn-xs" data-txndel="' + tx.id + '">✕</button></div>' + (billFill ? pavatiBlock(e, tx) : "") + "</div>";
   }
   function pavatiBlock(e, tx) {
     var pv = tx.pavati || {
@@ -3001,6 +3022,21 @@
         render();
       };
     });
+    byId("undoPIClosure", function(el) {
+      el.onclick = function() {
+        if (!confirm("Undo the PI Closure? This reopens the PI — the final cycle becomes active again and you can add entries, recoup, or close afresh.")) return;
+        if (e.closure) {
+          e.closure = null;
+          // Remove the final closing recoupment marker so the last cycle
+          // becomes the active current cycle again.
+          e.recoupments = (e.recoupments || []).filter(function(r) { return !r.final; });
+        }
+        e.status = "Open";
+        saveEntry(e);
+        toast("PI Closure undone \u2014 imprest reopened.", "ok");
+        render();
+      };
+    });
   }
   var actionMode = null;
   function openClosureForm(e, mode) {
@@ -4048,7 +4084,9 @@
     var tableRows = (e.txns || []).map(function(tx) {
       sno++;
       var isRecv = tx.kind === "received";
-      var desc = isRecv ? (tx.recoupmentId ? "Recoupment received" : "Amount received as " + (e.type || "TI")) : esc(tx.nameOfWork || tx.paidTo || "Expense") + (tx.billNo ? " (V/" + tx.billNo + ")" : "") + (tx.paidTo && tx.nameOfWork ? " — " + esc(tx.paidTo) : "");
+      // Use the SAME particulars format as Form-2: "Paid to : <Agency>, for <Work>"
+      var desc = formatParticulars(tx, e.type);
+      var vno = isRecv ? "" : (displayVoucherNo(tx) || "");
       // For recoupment txns, show totalCredit
       var amt = parseFloat(tx.amount) || 0;
       if (isRecv && tx.recoupmentId) {
@@ -4069,6 +4107,7 @@
         "<td>" + sno + "</td>" +
         "<td>" + fmtDate(tx.date) + "</td>" +
         "<td>" + (cycNo ? "C" + cycNo : "") + "</td>" +
+        "<td>" + esc(vno) + "</td>" +
         '<td style="text-align:left">' + esc(desc) + "</td>" +
         '<td class="num">' + (isRecv ? inr(amt) : "") + "</td>" +
         '<td class="num">' + (!isRecv ? inr(amt) : "") + "</td>" +
@@ -4078,11 +4117,12 @@
     if (e.closure && e.closure.stage === "done") {
       sno++;
       var cAmt = parseFloat(e.closure.amount) || 0;
-      var cDesc = e.closure.kind === "return" ? "Returned to company (Closure)" : "Reimbursement received (Closure)";
+      var cDesc = e.closure.kind === "return" ? "Amount returned to company (Closure)" : "Reimbursement received from company (Closure)";
       var isRecvC = e.closure.kind === "reimburse";
       tableRows += "<tr style=\"font-weight:700;background:#f8f4e8\">" +
         "<td>" + sno + "</td>" +
         "<td>" + fmtDate(e.closure.date) + "</td>" +
+        "<td></td>" +
         "<td></td>" +
         '<td style="text-align:left">' + esc(cDesc) + "</td>" +
         '<td class="num">' + (isRecvC ? inr(cAmt) : "") + "</td>" +
@@ -4107,9 +4147,9 @@
       '<div class="cs-sub">' + esc(e.subject || "") + '</div>' +
       '<div class="cs-info"><b>Name:</b> ' + esc(p.name || "") + ' &nbsp;&nbsp; <b>Designation:</b> ' + esc(p.designation || "") + ' &nbsp;&nbsp; <b>SAP No:</b> ' + esc(p.sapNo || "") + '<br><b>Type:</b> ' + e.type + ' &nbsp;&nbsp; <b>Ref:</b> ' + esc(e.letter.refNumber || "") + ' &nbsp;&nbsp; <b>Sanctioned Amount:</b> Rs. ' + inr(e.amount) + '</div>' +
       '<table class="cs-tbl"><thead><tr>' +
-        '<th>Sr</th><th>Date</th><th>Cycle</th><th style="width:40%">Particulars</th><th>Received (Rs.)</th><th>Expense (Rs.)</th>' +
+        '<th>Sr</th><th>Date</th><th>Cycle</th><th>Vch No</th><th style="width:38%">Particulars</th><th>Received (Rs.)</th><th>Expense (Rs.)</th>' +
       '</tr></thead><tbody>' + tableRows +
-      '<tr style="font-weight:700;background:#f0ece0"><td colspan="4" style="text-align:right">TOTAL</td><td class="num">' + inr(trueRecv) + '</td><td class="num">' + inr(trueExp) + '</td></tr>' +
+      '<tr style="font-weight:700;background:#f0ece0"><td colspan="5" style="text-align:right">TOTAL</td><td class="num">' + inr(trueRecv) + '</td><td class="num">' + inr(trueExp) + '</td></tr>' +
       '</tbody></table>' +
       '<div class="cs-totals"><b>Balance:</b> Rs. ' + inr(trueBalance) + (trueBalance === 0 ? " (Settled)" : "") + '</div>' +
       '<div class="cs-sign">' + esc(p.name || "") + ",<br>" + esc(p.designation || "") + "<br>" + esc(p.office || "") + '</div></div>';
