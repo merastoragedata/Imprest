@@ -835,17 +835,17 @@
     }
   }
   function applyAtmos() {
-    document.body.setAttribute("data-theme", ATMOS.theme);
+    // Night theme has been removed — the app always uses the day theme.
+    // Weather scenery (clear/cloudy/rain/snow) still applies independently.
+    ATMOS.theme = "day";
+    document.body.setAttribute("data-theme", "day");
     document.body.setAttribute("data-weather", ATMOS.weather);
     renderPrecip(ATMOS.weather);
-    var btn = document.getElementById("themeToggle");
-    if (btn) btn.textContent = ATMOS.theme === "day" ? "\u263e" : "\u2600";
     var sel = document.getElementById("weatherSelect");
     if (sel && sel.value !== ATMOS.weather) sel.value = ATMOS.weather;
   }
   function autoTheme() {
-    var h = new Date().getHours();
-    return (h >= 6 && h < 18) ? "day" : "night";
+    return "day";
   }
   // Open-Meteo WMO weather codes -> our four scenery states.
   function wmoToWeather(code) {
@@ -870,7 +870,7 @@
         .then(function(j) {
           if (!j || !j.current) return;
           ATMOS.weather = wmoToWeather(j.current.weather_code);
-          if (ATMOS.auto) ATMOS.theme = j.current.is_day ? "day" : "night";
+          // Theme stays day regardless of time of day (night theme removed).
           applyAtmos();
         })
         .catch(function() { /* offline or blocked — keep the fallback scenery */ });
@@ -887,13 +887,6 @@
     } catch (e) { /* scenery is decorative; never let it block the app */ }
   }
   function wireAtmosControls() {
-    byId("themeToggle", function(el) {
-      el.onclick = function() {
-        ATMOS.auto = false;
-        ATMOS.theme = ATMOS.theme === "day" ? "night" : "day";
-        applyAtmos();
-      };
-    });
     byId("weatherSelect", function(el) {
       el.onchange = function() {
         ATMOS.auto = false; // manual pick — stop auto-refreshing from the live feed
@@ -957,7 +950,6 @@
         '<option value="rain">\u2602 Rain</option>' +
         '<option value="snow">\u2744 Snow</option>' +
       '</select>' +
-      '<button class="icon-btn" id="themeToggle" title="Toggle day / night">\u263e</button>' +
     '</div>';
   }
   function navItem(key, ic, label) {
@@ -3981,10 +3973,12 @@
       '<div style="text-align:center;font-size:9px;color:#555;font-family:Arial,sans-serif;margin-bottom:2px">Maharashtra State Electricity Transmission Co. Ltd.</div>';
   }
   var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" +
-    ".vch{border:1px solid #999;padding:16px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:0}" +
+    ".vch{border:1px solid #999;border-radius:3px;padding:14px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-logo{text-align:center;margin-bottom:2px}" + ".vch-logo img{margin:0 auto}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:9px 0;flex:none}" +
     ".f2-page{font-family:Arial,sans-serif;font-size:11.5px}" + ".f2-title{text-align:center;font-weight:700;font-size:16px;margin:2px 0 10px;font-family:Georgia,'Times New Roman',serif}" +
     ".f2-head{width:100%;border-collapse:collapse;margin-bottom:8px}" + ".f2-head td{border:1px solid #999;padding:5px 8px;font-size:11.5px;vertical-align:top}" +
-    ".f2-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3}" + ".f2-table{border:1px solid #999}" + ".f2-table th,.f2-table td{border:1px solid #bbb;padding:4px 6px;text-align:center}" + ".f2-table thead th{border-bottom:1px solid #999;background:#eee;font-weight:700}" + ".f2-table tfoot td{border-top:1px solid #999;font-weight:700}" +
+    ".f2-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3;table-layout:fixed}" + ".f2-table{border:1px solid #999}" + ".f2-table th,.f2-table td{border:1px solid #bbb;padding:4px 5px;text-align:center;overflow:hidden}" + ".f2-table thead th{border-bottom:1px solid #999;background:#eee;font-weight:700}" + ".f2-table tfoot td{border-top:1px solid #999;font-weight:700}" +
+    ".f2-table td.desc{text-align:left;word-break:break-word;white-space:normal}" + ".f2-table .nowrap{white-space:nowrap}" +
+    ".f2-c1{width:4%}.f2-c2{width:11%}.f2-c3{width:9%}.f2-c5{width:8.5%}.f2-c6{width:3.5%}.f2-c7{width:8.5%}.f2-c8{width:3.5%}.f2-c9{width:9%}" +
     ".f2-foot{margin-top:10px;font-size:11.5px}" + ".f2-sign{text-align:right;font-weight:700;margin-top:26px;font-size:11.5px}" +
     ".pav-title{font-weight:700;font-size:17px;text-align:center;margin-bottom:22px;font-family:Georgia,'Times New Roman',serif}" + ".pav-date{text-align:right;margin-bottom:14px}" + ".pav-page{font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.9}" + ".pav-line{margin-bottom:16px}" + ".pav-blank{border-bottom:1px solid #333;display:inline-block;min-width:260px}" + ".pav-sign{margin-top:60px}";
   function openPrintWindow(pagesHtml) {
@@ -4047,9 +4041,9 @@
         '<td colspan="' + (d.pmo ? "2" : "1") + '">Date from : ' + fmtDate(d.dateFrom) + '</td>' +
         "<td>Date to : " + fmtDate(d.dateTo) + '</td>' +
       "</tr></table>" +
-      '<table class="f2-table"><thead><tr><th rowspan="2">Sr No</th><th rowspan="2">Month &amp; Date</th><th rowspan="2">Voucher No</th><th rowspan="2">Transactions</th><th colspan="2">Amount of Cash Payment</th><th colspan="2">Total</th><th rowspan="2">Head of<br>Account (SAP)</th></tr><tr><th>Rs</th><th>Ps</th><th>Rs</th><th>Ps</th></tr></thead><tbody>' +
+      '<table class="f2-table"><colgroup><col class="f2-c1"><col class="f2-c2"><col class="f2-c3"><col class="f2-c4"><col class="f2-c5"><col class="f2-c6"><col class="f2-c7"><col class="f2-c8"><col class="f2-c9"></colgroup><thead><tr><th rowspan="2">Sr No</th><th rowspan="2">Month &amp; Date</th><th rowspan="2">Voucher No</th><th rowspan="2">Transactions</th><th colspan="2">Amount of Cash Payment</th><th colspan="2">Total</th><th rowspan="2">Head of<br>Account (SAP)</th></tr><tr><th>Rs</th><th>Ps</th><th>Rs</th><th>Ps</th></tr></thead><tbody>' +
         d.rows.map(function(r) {
-          return "<tr><td>" + r.sno + "</td><td>" + r.monthDate + "</td><td>" + esc(r.voucherNo) + "</td><td style=\"text-align:left\">" + esc(r.particulars) + '</td><td class="num">' + r.paymentRs + '</td><td></td><td class="num">' + r.totalRs + "</td><td></td><td></td></tr>";
+          return "<tr><td>" + r.sno + '</td><td class="nowrap">' + r.monthDate + '</td><td class="nowrap">' + esc(r.voucherNo) + '</td><td class="desc">' + esc(r.particulars) + '</td><td class="num">' + r.paymentRs + '</td><td></td><td class="num">' + r.totalRs + "</td><td></td><td></td></tr>";
         }).join("") + padRows +
       "</tbody>" +
       '<tfoot><tr><td colspan="3"></td><td style="text-align:right;font-weight:700">Total Rs. =</td><td class="num" colspan="2">' + d.totalPayment + '</td><td class="num" colspan="2">' + d.totalReceipt + "</td><td></td></tr></tfoot></table>" +
@@ -4168,7 +4162,7 @@
         '<td colspan="2">Date from : ______________</td>' +
         '<td>Date to : ______________</td>' +
       "</tr></table>" +
-      '<table class="f2-table"><thead><tr><th rowspan="2">Sr No</th><th rowspan="2">Month &amp; Date</th><th rowspan="2">Voucher No</th><th rowspan="2">Transactions</th><th colspan="2">Amount of Cash Payment</th><th colspan="2">Total</th><th rowspan="2">Head of<br>Account (SAP)</th></tr><tr><th>Rs</th><th>Ps</th><th>Rs</th><th>Ps</th></tr></thead><tbody>' +
+      '<table class="f2-table"><colgroup><col class="f2-c1"><col class="f2-c2"><col class="f2-c3"><col class="f2-c4"><col class="f2-c5"><col class="f2-c6"><col class="f2-c7"><col class="f2-c8"><col class="f2-c9"></colgroup><thead><tr><th rowspan="2">Sr No</th><th rowspan="2">Month &amp; Date</th><th rowspan="2">Voucher No</th><th rowspan="2">Transactions</th><th colspan="2">Amount of Cash Payment</th><th colspan="2">Total</th><th rowspan="2">Head of<br>Account (SAP)</th></tr><tr><th>Rs</th><th>Ps</th><th>Rs</th><th>Ps</th></tr></thead><tbody>' +
         Array(10).fill('<tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>').join("") +
       "</tbody><tfoot><tr><td colspan=\"3\"></td><td style=\"text-align:right;font-weight:700\">Total Rs. =</td><td colspan=\"2\"></td><td colspan=\"2\"></td><td></td></tr></tfoot></table>" +
       '<div class="f2-foot"><b>Amount paid back =</b> Rs. ______________</div>' +
@@ -4730,7 +4724,7 @@
   }
   function voucherHtmlBlock(e, tx) {
     var v = voucherData(e, tx);
-    return '<div class="vch">' + logoImgHtml(30) +
+    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", v.voucherNo) +
       voucherRow(2, "Date", v.date) +
@@ -4747,12 +4741,22 @@
     var list = cycle ? cycle.txns.filter(function(t) { return t.kind === "expense"; }) : expenseTxns(e);
     if (!list.length) return '<div class="hint">No expense vouchers yet.</div>';
     var pages = "";
+    // 3 vouchers per A4 page. A dotted divider appears ONLY between two real
+    // vouchers on the same page — never after the last voucher, and never
+    // around empty placeholder slots used to keep the last page's spacing.
     for (var i = 0; i < list.length; i += 3) {
-      var blocks = [];
-      for (var j = 0; j < 3; j++) {
-        blocks.push(list[i + j] ? voucherHtmlBlock(e, list[i + j]) : '<div class="vch" style="visibility:hidden"></div>');
+      var pageItems = list.slice(i, i + 3);
+      var parts = [];
+      pageItems.forEach(function(tx, idx) {
+        parts.push(voucherHtmlBlock(e, tx));
+        if (idx < pageItems.length - 1) parts.push('<div class="vch-divider"></div>');
+      });
+      // Pad the last page with invisible spacers so the present vouchers keep
+      // their natural (1/3-page) height instead of stretching to fill.
+      for (var k = pageItems.length; k < 3; k++) {
+        parts.push('<div class="vch" style="visibility:hidden;border:none"></div>');
       }
-      pages += '<div class="pg"><div class="vch-pair">' + blocks.join('<div class="vch-divider"></div>') + "</div></div>";
+      pages += '<div class="pg"><div class="vch-pair">' + parts.join("") + "</div></div>";
     }
     return pages;
   }
@@ -4778,7 +4782,7 @@
     });
   }
   function blankVoucherHtml() {
-    return '<div class="vch">' + logoImgHtml(30) +
+    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", "______________") +
       voucherRow(2, "Date", "______________") +
@@ -5192,7 +5196,7 @@
     var wb = new window.ExcelJS.Workbook();
     var ws = wb.addWorksheet("Form-2", { pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
     ws.columns = [
-      { width: 6 }, { width: 12 }, { width: 12 }, { width: 34 },
+      { width: 6 }, { width: 24 }, { width: 12 }, { width: 34 },
       { width: 8 }, { width: 6 }, { width: 8 }, { width: 6 }, { width: 14 }
     ];
     var THIN = { style: "thin", color: { argb: "FF999999" } };
