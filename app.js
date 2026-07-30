@@ -4050,7 +4050,7 @@
     return '<div style="text-align:center;font-weight:800;font-size:' + Math.round(heightPx * 0.55) + 'px;letter-spacing:.5px;font-family:Arial,sans-serif;line-height:1">MAHA<span style="color:#c0392b">TRANSCO</span></div>' +
       '<div style="text-align:center;font-size:9px;color:#555;font-family:Arial,sans-serif;margin-bottom:2px">Maharashtra State Electricity Transmission Co. Ltd.</div>';
   }
-  var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" + ".letter-print,.letter-print *{font-family:Arial,Helvetica,sans-serif !important}" +
+  var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" + ".letter-print{font-size:12pt;line-height:1.7}" + ".letter-print,.letter-print *{font-family:Arial,Helvetica,sans-serif !important}" + ".letter-print .lt-salut{margin-bottom:10px}" + ".letter-print .lt-sub{margin-bottom:14px}" + ".letter-print .lt-para{margin-bottom:11px;text-indent:1.5em;text-align:justify}" +
     ".vch{border:1px solid #999;padding:16px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:9px 0;flex:none}" +
     ".f2-page{font-family:Arial,sans-serif;font-size:11.5px}" + ".f2-title{text-align:center;font-weight:700;font-size:16px;margin:2px 0 10px;font-family:Georgia,'Times New Roman',serif}" +
     ".f2-head{width:100%;border-collapse:collapse;margin-bottom:8px}" + ".f2-head td{border:1px solid #999;padding:5px 8px;font-size:11.5px;vertical-align:top}" +
@@ -4081,7 +4081,7 @@
     var body = L.bodyHtml ? '<div class="lt-para">' + L.bodyHtml + "</div>" : "";
     return '<div class="pg letter-print"><div class="lt-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LTD.</div><div class="lt-iso">An ISO 9001:2000 CERTIFIED ORGANISATION</div>' + (L.sendingAddress ? '<div class="lt-send">' + esc(L.sendingAddress) + "</div>" : "") + '<div class="lt-ref"><span>' + esc(L.refPrefix || "") + " " + esc(L.refNumber || "") + "</span><span>Date: " + fmtDate(L.refDate) + "</span></div>" + '<div class="lt-to">To,<br>The ' + esc(bd) + ",<br>" + esc(bo) + "<br>" + esc(bg) + "</div>" + '<div class="lt-sub"><b>Sub:</b>&nbsp;&nbsp;' + esc(e.subject || "") + "</div>" + '<div class="lt-salut">Respected ' + salut + ",</div><div>" + body + "</div>" + (atts.length ? '<div class="lt-encl"><b>Encl:</b><ol>' + atts.map(function(a) {
       return "<li>" + esc(a) + "</li>";
-    }).join("") + "</ol></div>" : "") + '<div class="lt-emp"><div style="font-weight:700">' + esc(p.name || "") + "</div><div>" + esc(p.designation || "") + "</div></div>" + '<div class="lt-rec"><div style="font-weight:700">Recommended By,</div><div style="height:18px"></div><div style="font-weight:700">' + esc(p.bossName || "") + "</div><div>" + esc(bd) + "</div><div>" + esc(bo) + "</div><div>" + esc(bg) + "</div></div></div>";
+    }).join("") + "</ol></div>" : "") + '<div class="lt-emp"><div style="font-weight:700">' + esc(p.name || "") + "</div><div>" + esc(p.designation || "") + "</div>" + (p.workLocation ? "<div>" + esc(p.workLocation) + "</div>" : "") + "</div>" + '<div class="lt-rec"><div style="font-weight:700">Recommended By,</div><div style="height:18px"></div><div style="font-weight:700">' + esc(p.bossName || "") + "</div><div>" + esc(bd) + "</div><div>" + esc(bo) + "</div><div>" + esc(bg) + "</div></div></div>";
   }
   function printLetter(e) {
     openPrintWindow(letterPrintHtml(state.user, e));
@@ -4469,6 +4469,12 @@
       alignment: AL.RIGHT,
       children: [ new T(p.designation || "") ]
     }));
+    if (p.workLocation) {
+      children.push(new P({
+        alignment: AL.RIGHT,
+        children: [ new T(p.workLocation) ]
+      }));
+    }
     children.push(new P({
       alignment: AL.RIGHT,
       children: [ new T("") ]
@@ -4520,92 +4526,79 @@
     });
   }
   function buildLetterPdf(e) {
+    // Render the PDF from the EXACT same .letter-page HTML shown in the
+    // webpage preview, snapshotted via html2canvas — so the PDF is a true
+    // replica of the preview (spacing, fonts, styling all identical) rather
+    // than a hand-drawn approximation.
     var p = state.user, L = e.letter;
-    var doc = new window.jspdf.jsPDF({
-      unit: "pt",
-      format: "a4"
-    });
-    var W = doc.internal.pageSize.getWidth(), M = 56, y = 56;
-    var salut = p.bossSalutation === "Madam" ? "Madam" : "Sir";
-    doc.setFont("times", "bold").setFontSize(13);
-    doc.text("MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LTD.", W / 2, y, {
-      align: "center"
-    });
-    y += 16;
-    doc.setFont("times", "normal").setFontSize(9);
-    doc.text("An ISO 9001:2000 CERTIFIED ORGANISATION", W / 2, y, {
-      align: "center"
-    });
-    y += 26;
-    doc.setFontSize(11);
-    doc.text((L.refPrefix || "") + " " + (L.refNumber || ""), M, y);
-    doc.text("Date: " + fmtDate(L.refDate), W - M, y, {
-      align: "right"
-    });
-    y += 22;
-    doc.text("To,", M, y);
-    y += 15;
-    doc.text("The " + (p.bossDesignation || "") + ",", M, y);
-    y += 15;
-    doc.text(p.bossOffice || "", M, y);
-    y += 15;
-    doc.text(p.bossOrg || "", M, y);
-    y += 22;
-    doc.setFont("times", "bold");
-    doc.text("Sub: ", M, y);
-    var sw = doc.getTextWidth("Sub: ");
-    doc.setFont("times", "normal");
-    doc.text(doc.splitTextToSize(e.subject || "", W - 2 * M - sw), M + sw, y);
-    y += 24;
-    doc.text("Respected " + salut + ",", M, y);
-    y += 20;
-    if (e.letter.bodyHtml) {
-      y = renderRichParagraphPdf(doc, e.letter.bodyHtml, M, y, W - 2 * M, 11);
-      y += 6;
-    }
-    doc.setFont("times", "normal");
-    doc.setFontSize(11);
-    doc.setTextColor("#1a1a1a");
-    var atts = (L.attachments || []).filter(Boolean);
-    if (atts.length) {
-      doc.setFont("times", "bold");
-      doc.text("Encl:", M, y);
-      doc.setFont("times", "normal");
-      y += 15;
-      atts.forEach(function(a, i) {
-        doc.text(i + 1 + ". " + a, M + 10, y);
-        y += 14;
+    var inner = letterSheet(p, e); // same builder as the on-screen preview
+    // Inline the exact preview styling so the offscreen render matches.
+    var css =
+      ".letter-pdf-root{width:794px;background:#fff;padding:60px 64px;box-sizing:border-box;" +
+      "font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#1a1a1a;line-height:1.7}" +
+      ".letter-pdf-root .letter-page{width:auto;background:#fff;border:none;box-shadow:none;padding:0;" +
+      "font-family:Arial,Helvetica,sans-serif;font-size:12pt;color:#1a1a1a;line-height:1.7}" +
+      ".letter-pdf-root *{font-family:Arial,Helvetica,sans-serif !important}" +
+      ".letter-pdf-root .lt-org{font-weight:700;font-size:16px;text-align:center}" +
+      ".letter-pdf-root .lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" +
+      ".letter-pdf-root .lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" +
+      ".letter-pdf-root .lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px;gap:10px}" +
+      ".letter-pdf-root .lt-to{margin-bottom:16px}" +
+      ".letter-pdf-root .lt-sub{margin-bottom:14px}" +
+      ".letter-pdf-root .lt-salut{margin-bottom:10px}" +
+      ".letter-pdf-root .lt-para{margin-bottom:11px;text-indent:1.5em;text-align:justify}" +
+      ".letter-pdf-root .lt-ghost{color:#b7b2a4;font-style:italic}" +
+      ".letter-pdf-root .lt-encl{margin-bottom:16px;font-size:12.5px}" +
+      ".letter-pdf-root .lt-encl ol{margin:4px 0 0 18px;padding:0}" +
+      ".letter-pdf-root .lt-emp{text-align:right;margin:24px 0 28px}" +
+      ".letter-pdf-root .lt-rec{border-top:1px dashed #ccc;padding-top:14px}";
+    var html = "<style>" + css + '</style><div class="letter-pdf-root">' + inner + "</div>";
+    toast("Preparing PDF…", "ok");
+    ensureJsPdf().then(function() {
+      return ensureHtml2Canvas();
+    }).then(function() {
+      var container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.width = "794px";
+      container.style.background = "#fff";
+      container.innerHTML = html;
+      document.body.appendChild(container);
+      var target = container.querySelector(".letter-pdf-root");
+      return window.html2canvas(target, { scale: 2, backgroundColor: "#ffffff" }).then(function(canvas) {
+        var doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+        var pageW = doc.internal.pageSize.getWidth();
+        var pageH = doc.internal.pageSize.getHeight();
+        var imgW = pageW;
+        var imgH = pageW * (canvas.height / canvas.width);
+        // Paginate if the letter is taller than one page.
+        if (imgH <= pageH) {
+          doc.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, imgW, imgH);
+        } else {
+          var sliceHpx = Math.floor(canvas.width * (pageH / pageW));
+          var yOff = 0, first = true;
+          while (yOff < canvas.height) {
+            var slice = document.createElement("canvas");
+            slice.width = canvas.width;
+            slice.height = Math.min(sliceHpx, canvas.height - yOff);
+            slice.getContext("2d").drawImage(canvas, 0, yOff, canvas.width, slice.height, 0, 0, canvas.width, slice.height);
+            if (!first) doc.addPage();
+            doc.addImage(slice.toDataURL("image/png"), "PNG", 0, 0, imgW, pageW * (slice.height / canvas.width));
+            yOff += slice.height;
+            first = false;
+          }
+        }
+        doc.save(e.type + "_" + (L.refNumber || "letter") + ".pdf");
+        document.body.removeChild(container);
+        toast("PDF downloaded.", "ok");
+      }).catch(function(err) {
+        if (container.parentNode) document.body.removeChild(container);
+        toast("Could not render PDF — try Print instead.", "err");
       });
-      y += 6;
-    }
-    y += 10;
-    doc.setFont("times", "bold");
-    doc.text(p.name || "", W - M, y, {
-      align: "right"
+    }).catch(function() {
+      toast("Could not load PDF renderer — try Print instead.", "err");
     });
-    doc.setFont("times", "normal");
-    y += 14;
-    doc.text(p.designation || "", W - M, y, {
-      align: "right"
-    });
-    y += 14;
-    doc.text(p.office || "", W - M, y, {
-      align: "right"
-    });
-    y += 26;
-    doc.setFont("times", "bold");
-    doc.text("Recommended By,", M, y);
-    y += 24;
-    doc.text(p.bossName || "", M, y);
-    doc.setFont("times", "normal");
-    y += 14;
-    doc.text(p.bossDesignation || "", M, y);
-    y += 14;
-    doc.text(p.bossOffice || "", M, y);
-    y += 14;
-    doc.text(p.bossOrg || "", M, y);
-    doc.save(e.type + "_" + (L.refNumber || "letter") + ".pdf");
-    toast("PDF downloaded.", "ok");
   }
   function voucherData(e, tx) {
     var p = docUser();
