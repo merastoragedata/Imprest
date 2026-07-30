@@ -189,8 +189,9 @@ input[type=file]{padding:6px;font-size:12px}
 .letter-scale-outer{width:100%;overflow:hidden;position:relative}
 .letter-page{
   width:794px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-md);
-  padding:60px 64px;font-family:Georgia,'Times New Roman',serif;font-size:14px;color:#1a1a1a;line-height:1.7;
+  padding:60px 64px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.7;
 }
+.letter-page *{font-family:Arial,Helvetica,sans-serif !important}
 .lt-org{font-weight:700;font-size:16px;text-align:center}
 .lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}
 .lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}
@@ -213,6 +214,10 @@ input[type=file]{padding:6px;font-size:12px}
 .rt-swatch-label{font-size:10px;font-weight:700;color:var(--steel-600);text-transform:uppercase;margin-right:2px}
 .rt-color,.rt-hicolor{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.2);cursor:pointer;padding:0;flex:none}
 .rt-hicolor{border-radius:5px}
+.rt-picker{position:relative;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--line-strong);border-radius:5px;cursor:pointer;font-size:12px;background:var(--surface);flex:none}
+.rt-picker input[type="color"]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;padding:0;border:none}
+.rt-recent-wrap{display:inline-flex;align-items:center;gap:4px}
+.rt-hi-recent{box-shadow:0 0 0 1px var(--gold-400)}
 .rt-editor{min-height:64px;border:1.5px solid var(--line-strong);border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:9px 11px;font-size:13.5px;background:#fff;outline:none;font-family:var(--font-body);color:#101826}
 .rt-editor:focus{border-color:var(--navy-700);box-shadow:0 0 0 3px rgba(28,54,102,.10)}
 
@@ -1850,7 +1855,25 @@ body[data-weather="clear"] .sky{opacity:.3}
     var hiSwatches = HILITE_COLORS.map(function(c) {
       return '<button type="button" class="rt-hicolor" data-hicolor="' + c + '" style="background:' + (c === "transparent" ? "#fff" : c) + (c === "transparent" ? ";background-image:linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%),linear-gradient(45deg,#ddd 25%,transparent 25%,transparent 75%,#ddd 75%);background-size:6px 6px;background-position:0 0,3px 3px" : "") + '" title="' + (c === "transparent" ? "No highlight" : c) + '"></button>';
     }).join("");
-    return '<div class="field">' + "<label>" + esc(label) + "</label>" + '<div class="rt-toolbar" data-for="' + id + '">' + '<select class="rt-font" data-font-for="' + id + '">' + fontOpts + "</select>" + '<select class="rt-size" data-size-for="' + id + '">' + sizeOpts + "</select>" + rtb("bold", "<b>B</b>") + rtb("italic", "<i>I</i>") + rtb("underline", "<u>U</u>") + '<span class="rt-div"></span>' + rtb("justifyLeft", "⟸") + rtb("justifyCenter", "≡") + rtb("justifyRight", "⟹") + rtb("justifyFull", "☰") + '<span class="rt-div"></span>' + '<button type="button" class="rt-btn rt-reset" data-cmd="reset" title="Reset formatting">⟲</button>' + "</div>" + '<div class="rt-toolbar rt-toolbar2" data-for="' + id + '">' + '<span class="rt-swatch-label">Text</span>' + textSwatches + '<span class="rt-div"></span>' + '<span class="rt-swatch-label">Highlight</span>' + hiSwatches + "</div>" + '<div class="rt-editor" id="' + id + '" contenteditable="true"></div>' + "</div>";
+    var recentHi = getRecentHighlights();
+    var recentHiSwatches = recentHi.map(function(c) {
+      return '<button type="button" class="rt-hicolor rt-hi-recent" data-hicolor="' + c + '" style="background:' + c + '" title="Recent: ' + c + '"></button>';
+    }).join("");
+    return '<div class="field">' + "<label>" + esc(label) + "</label>" + '<div class="rt-toolbar" data-for="' + id + '">' + '<select class="rt-font" data-font-for="' + id + '">' + fontOpts + "</select>" + '<select class="rt-size" data-size-for="' + id + '">' + sizeOpts + "</select>" + rtb("bold", "<b>B</b>") + rtb("italic", "<i>I</i>") + rtb("underline", "<u>U</u>") + '<span class="rt-div"></span>' + rtb("justifyLeft", "⟸") + rtb("justifyCenter", "≡") + rtb("justifyRight", "⟹") + rtb("justifyFull", "☰") + '<span class="rt-div"></span>' + '<button type="button" class="rt-btn rt-reset" data-cmd="reset" title="Reset formatting">⟲</button>' + "</div>" + '<div class="rt-toolbar rt-toolbar2" data-for="' + id + '">' + '<span class="rt-swatch-label">Text</span>' + textSwatches + '<label class="rt-picker" title="Custom text colour">🎨<input type="color" class="rt-color-any" data-color-for="' + id + '" value="#101826"></label>' + '<span class="rt-div"></span>' + '<span class="rt-swatch-label">Highlight</span>' + hiSwatches + '<label class="rt-picker" title="Custom highlight colour">🖊<input type="color" class="rt-hicolor-any" data-hicolor-for="' + id + '" value="#fff6b0"></label>' + '<span class="rt-recent-wrap" data-recent-for="' + id + '">' + (recentHiSwatches ? '<span class="rt-swatch-label">Recent</span>' + recentHiSwatches : "") + "</span>" + "</div>" + '<div class="rt-editor" id="' + id + '" contenteditable="true"></div>' + "</div>";
+  }
+  function getRecentHighlights() {
+    try {
+      var arr = JSON.parse(localStorage.getItem("imprestRecentHi") || "[]");
+      return Array.isArray(arr) ? arr.slice(0, 3) : [];
+    } catch (_e) { return []; }
+  }
+  function pushRecentHighlight(color) {
+    if (!color || color === "transparent") return;
+    try {
+      var arr = getRecentHighlights().filter(function(c) { return c.toLowerCase() !== color.toLowerCase(); });
+      arr.unshift(color);
+      localStorage.setItem("imprestRecentHi", JSON.stringify(arr.slice(0, 3)));
+    } catch (_e) {}
   }
   function rtb(cmd, inner) {
     return '<button type="button" class="rt-btn" data-cmd="' + cmd + '">' + inner + "</button>";
@@ -1863,6 +1886,15 @@ body[data-weather="clear"] .sky{opacity:.3}
       while (f.firstChild) span.appendChild(f.firstChild);
       f.parentNode.replaceChild(span, f);
     });
+  }
+  function rgbToHex(c) {
+    if (!c) return c;
+    c = c.trim();
+    if (c.charAt(0) === "#") return c;
+    var m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(c);
+    if (!m) return c;
+    function h(n) { var s = parseInt(n, 10).toString(16); return s.length === 1 ? "0" + s : s; }
+    return "#" + h(m[1]) + h(m[2]) + h(m[3]);
   }
   function parseRichHtml(html) {
     var container = document.createElement("div");
@@ -1884,6 +1916,7 @@ body[data-weather="clear"] .sky{opacity:.3}
           italic: style.italic,
           underline: style.underline,
           color: style.color,
+          highlight: style.highlight,
           font: style.font,
           size: style.size
         });
@@ -1895,6 +1928,7 @@ body[data-weather="clear"] .sky{opacity:.3}
         italic: style.italic,
         underline: style.underline,
         color: style.color,
+        highlight: style.highlight,
         font: style.font,
         size: style.size
       };
@@ -1907,8 +1941,10 @@ body[data-weather="clear"] .sky{opacity:.3}
         if (node.getAttribute("face")) s.font = node.getAttribute("face");
       }
       var inlineStyle = node.getAttribute("style") || "";
-      var cm = /color:\s*(#[0-9a-fA-F]{3,6}|rgb\([^)]+\))/i.exec(inlineStyle);
+      var cm = /[^-]color:\s*(#[0-9a-fA-F]{3,6}|rgb\([^)]+\))/i.exec(" " + inlineStyle);
       if (cm) s.color = cm[1];
+      var hm = /background(?:-color)?:\s*(#[0-9a-fA-F]{3,6}|rgb\([^)]+\))/i.exec(inlineStyle);
+      if (hm) s.highlight = rgbToHex(hm[1]);
       var fm = /font-family:\s*([^;]+)/i.exec(inlineStyle);
       if (fm) s.font = fm[1].trim();
       var szm = /font-size:\s*([\d.]+)pt/i.exec(inlineStyle);
@@ -3502,10 +3538,57 @@ body[data-weather="clear"] .sky{opacity:.3}
           } catch (_e) {
             document.execCommand("backColor", false, col);
           }
+          if (col && col !== "transparent") pushRecentHighlight(col);
           syncEditors(e);
           refreshPreview(e);
         };
       });
+      // Full-palette text colour picker
+      var anyText = tb.querySelector(".rt-color-any");
+      if (anyText) {
+        anyText.oninput = function() {
+          var ed = document.getElementById(tid);
+          ed.focus();
+          document.execCommand("foreColor", false, anyText.value);
+          syncEditors(e);
+          refreshPreview(e);
+        };
+      }
+      // Full-palette highlight picker — records into recent-3 and refreshes
+      var anyHi = tb.querySelector(".rt-hicolor-any");
+      if (anyHi) {
+        anyHi.onchange = function() {
+          var ed = document.getElementById(tid);
+          ed.focus();
+          try { document.execCommand("hiliteColor", false, anyHi.value); }
+          catch (_e) { document.execCommand("backColor", false, anyHi.value); }
+          pushRecentHighlight(anyHi.value);
+          syncEditors(e);
+          // Re-render the recent swatches inline without a full re-render
+          var wrap = tb.querySelector(".rt-recent-wrap");
+          if (wrap) {
+            var rec = getRecentHighlights();
+            wrap.innerHTML = rec.length ? '<span class="rt-swatch-label">Recent</span>' + rec.map(function(rc) {
+              return '<button type="button" class="rt-hicolor rt-hi-recent" data-hicolor="' + rc + '" style="background:' + rc + '" title="Recent: ' + rc + '"></button>';
+            }).join("") : "";
+            // Re-wire the freshly created recent swatches
+            wrap.querySelectorAll(".rt-hicolor").forEach(function(rcBtn) {
+              rcBtn.onmousedown = function(ev2) {
+                ev2.preventDefault();
+                var ed2 = document.getElementById(tid);
+                ed2.focus();
+                var rcol = rcBtn.getAttribute("data-hicolor");
+                try { document.execCommand("hiliteColor", false, rcol); }
+                catch (_e) { document.execCommand("backColor", false, rcol); }
+                pushRecentHighlight(rcol);
+                syncEditors(e);
+                refreshPreview(e);
+              };
+            });
+          }
+          refreshPreview(e);
+        };
+      }
     });
   }
   function wireStatus(e) {
@@ -4674,13 +4757,13 @@ body[data-weather="clear"] .sky{opacity:.3}
     return '<div style="text-align:center;font-weight:800;font-size:' + Math.round(heightPx * 0.55) + 'px;letter-spacing:.5px;font-family:Arial,sans-serif;line-height:1">MAHA<span style="color:#c0392b">TRANSCO</span></div>' +
       '<div style="text-align:center;font-size:9px;color:#555;font-family:Arial,sans-serif;margin-bottom:2px">Maharashtra State Electricity Transmission Co. Ltd.</div>';
   }
-  var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" +
-    ".vch{border:1px solid #999;border-radius:3px;padding:14px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-logo{text-align:center;margin-bottom:2px}" + ".vch-logo img{margin:0 auto}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:9px 0;flex:none}" +
+  var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" + ".letter-print,.letter-print *{font-family:Arial,Helvetica,sans-serif !important}" +
+    ".vch{border:1px solid #999;padding:16px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:9px 0;flex:none}" +
     ".f2-page{font-family:Arial,sans-serif;font-size:11.5px}" + ".f2-title{text-align:center;font-weight:700;font-size:16px;margin:2px 0 10px;font-family:Georgia,'Times New Roman',serif}" +
     ".f2-head{width:100%;border-collapse:collapse;margin-bottom:8px}" + ".f2-head td{border:1px solid #999;padding:5px 8px;font-size:11.5px;vertical-align:top}" +
     ".f2-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3;table-layout:fixed}" + ".f2-table{border:1px solid #999}" + ".f2-table th,.f2-table td{border:1px solid #bbb;padding:4px 5px;text-align:center;overflow:hidden}" + ".f2-table thead th{border-bottom:1px solid #999;background:#eee;font-weight:700}" + ".f2-table tfoot td{border-top:1px solid #999;font-weight:700}" +
     ".f2-table td.desc{text-align:left;word-break:break-word;white-space:normal}" + ".f2-table .nowrap{white-space:nowrap}" +
-    ".f2-c1{width:4%}.f2-c2{width:11%}.f2-c3{width:9%}.f2-c5{width:8.5%}.f2-c6{width:3.5%}.f2-c7{width:8.5%}.f2-c8{width:3.5%}.f2-c9{width:9%}" +
+    ".f2-c1{width:4%}.f2-c2{width:11%}.f2-c3{width:9%}.f2-c5{width:10.2%}.f2-c6{width:3.5%}.f2-c7{width:10.2%}.f2-c8{width:3.5%}.f2-c9{width:9%}" +
     ".f2-foot{margin-top:10px;font-size:11.5px}" + ".f2-sign{text-align:right;font-weight:700;margin-top:26px;font-size:11.5px}" +
     ".pav-title{font-weight:700;font-size:17px;text-align:center;margin-bottom:22px;font-family:Georgia,'Times New Roman',serif}" + ".pav-date{text-align:right;margin-bottom:14px}" + ".pav-page{font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:1.9}" + ".pav-line{margin-bottom:16px}" + ".pav-blank{border-bottom:1px solid #333;display:inline-block;min-width:260px}" + ".pav-sign{margin-top:60px}";
   function openPrintWindow(pagesHtml) {
@@ -4703,7 +4786,7 @@ body[data-weather="clear"] .sky{opacity:.3}
     var atts = (L.attachments || []).filter(Boolean);
     var salut = p.bossSalutation === "Madam" ? "Madam" : "Sir";
     var body = L.bodyHtml ? '<div class="lt-para">' + L.bodyHtml + "</div>" : "";
-    return '<div class="pg"><div class="lt-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LTD.</div><div class="lt-iso">An ISO 9001:2000 CERTIFIED ORGANISATION</div>' + (L.sendingAddress ? '<div class="lt-send">' + esc(L.sendingAddress) + "</div>" : "") + '<div class="lt-ref"><span>' + esc(L.refPrefix || "") + " " + esc(L.refNumber || "") + "</span><span>Date: " + fmtDate(L.refDate) + "</span></div>" + '<div class="lt-to">To,<br>The ' + esc(bd) + ",<br>" + esc(bo) + "<br>" + esc(bg) + "</div>" + '<div class="lt-sub"><b>Sub:</b>&nbsp;&nbsp;' + esc(e.subject || "") + "</div>" + '<div class="lt-salut">Respected ' + salut + ",</div><div>" + body + "</div>" + (atts.length ? '<div class="lt-encl"><b>Encl:</b><ol>' + atts.map(function(a) {
+    return '<div class="pg letter-print"><div class="lt-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LTD.</div><div class="lt-iso">An ISO 9001:2000 CERTIFIED ORGANISATION</div>' + (L.sendingAddress ? '<div class="lt-send">' + esc(L.sendingAddress) + "</div>" : "") + '<div class="lt-ref"><span>' + esc(L.refPrefix || "") + " " + esc(L.refNumber || "") + "</span><span>Date: " + fmtDate(L.refDate) + "</span></div>" + '<div class="lt-to">To,<br>The ' + esc(bd) + ",<br>" + esc(bo) + "<br>" + esc(bg) + "</div>" + '<div class="lt-sub"><b>Sub:</b>&nbsp;&nbsp;' + esc(e.subject || "") + "</div>" + '<div class="lt-salut">Respected ' + salut + ",</div><div>" + body + "</div>" + (atts.length ? '<div class="lt-encl"><b>Encl:</b><ol>' + atts.map(function(a) {
       return "<li>" + esc(a) + "</li>";
     }).join("") + "</ol></div>" : "") + '<div class="lt-emp"><div style="font-weight:700">' + esc(p.name || "") + "</div><div>" + esc(p.designation || "") + "</div></div>" + '<div class="lt-rec"><div style="font-weight:700">Recommended By,</div><div style="height:18px"></div><div style="font-weight:700">' + esc(p.bossName || "") + "</div><div>" + esc(bd) + "</div><div>" + esc(bo) + "</div><div>" + esc(bg) + "</div></div></div>";
   }
@@ -4750,7 +4833,7 @@ body[data-weather="clear"] .sky{opacity:.3}
       "</tbody>" +
       '<tfoot><tr><td colspan="3"></td><td style="text-align:right;font-weight:700">Total Rs. =</td><td class="num" colspan="2">' + d.totalPayment + '</td><td class="num" colspan="2">' + d.totalReceipt + "</td><td></td></tr></tfoot></table>" +
       settleHtml +
-      '<div class="f2-sign">' + esc(d.name) + ",<br>" + esc(d.designation) + "<br>" + esc(d.office) + "</div>" +
+      '<div class="f2-sign">' + esc(d.name) + ",<br>" + esc(d.designation) + (d.workLocation ? "<br>" + esc(d.workLocation) : "") + (d.office ? "<br>" + esc(d.office) : "") + "</div>" +
       cycleTag +
       "</div>";
   }
@@ -4887,10 +4970,8 @@ body[data-weather="clear"] .sky{opacity:.3}
     return t ? [ t ] : [];
   }
   function pdfFontFamily(font) {
-    if (!font) return "helvetica";
-    var f = font.toLowerCase();
-    if (f.indexOf("times") > -1 || f.indexOf("georgia") > -1 || f.indexOf("serif") > -1) return "times";
-    if (f.indexOf("courier") > -1 || f.indexOf("mono") > -1) return "courier";
+    // Letter is unified to Arial — jsPDF's built-in Helvetica is the Arial
+    // equivalent, so always use it regardless of the editor's font choice.
     return "helvetica";
   }
   function pdfFontStyle(bold, italic) {
@@ -5051,7 +5132,8 @@ body[data-weather="clear"] .sky{opacity:.3}
         if (r.italic) opts.italics = true;
         if (r.underline) opts.underline = {};
         if (r.color) opts.color = String(r.color).replace("#", "");
-        if (r.font) opts.font = String(r.font).split(",")[0].replace(/['"]/g, "").trim();
+        if (r.highlight) opts.shading = { type: "clear", fill: String(r.highlight).replace("#", "") };
+        opts.font = "Arial"; // unify the whole letter to Arial
         if (r.size) opts.size = Math.round(r.size * 2);
         return new T(opts);
       });
@@ -5126,6 +5208,7 @@ body[data-weather="clear"] .sky{opacity:.3}
       children: [ new T(p.bossOrg || "") ]
     }));
     var doc = new docx.Document({
+      styles: { default: { document: { run: { font: "Arial" } } } },
       sections: [ {
         children: children
       } ]
@@ -5426,7 +5509,7 @@ body[data-weather="clear"] .sky{opacity:.3}
   }
   function voucherHtmlBlock(e, tx) {
     var v = voucherData(e, tx);
-    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
+    return '<div class="vch">' + logoImgHtml(30) +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", v.voucherNo) +
       voucherRow(2, "Date", v.date) +
@@ -5484,7 +5567,7 @@ body[data-weather="clear"] .sky{opacity:.3}
     });
   }
   function blankVoucherHtml() {
-    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
+    return '<div class="vch">' + logoImgHtml(30) +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", "______________") +
       voucherRow(2, "Date", "______________") +
