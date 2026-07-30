@@ -374,10 +374,6 @@ body[data-theme="day"][data-weather="cloudy"] #sky{background:linear-gradient(18
 body[data-theme="day"][data-weather="snow"] #sky{background:linear-gradient(180deg,#9FB2C4 0%,#C3D0DA 45%,#DDE4E8 75%,#EDEDE8 100%)}
 
 /* ── Night sky ── */
-body[data-theme="night"] #sky{
-  background:radial-gradient(ellipse 120% 80% at 50% 100%, #14243a 0%, #0a1220 45%, #05080f 100%);
-}
-body[data-theme="night"][data-weather="rain"] #sky{background:radial-gradient(ellipse 120% 80% at 50% 100%, #141b26 0%, #080d15 50%, #04060a 100%)}
 
 /* ── Sun (day) ── */
 .sun{position:absolute;top:9%;right:14%;width:76px;height:76px;border-radius:50%;
@@ -395,16 +391,9 @@ body[data-theme="day"][data-weather="snow"] .sun{opacity:.22}
   background:radial-gradient(circle at 35% 35%,#FBFBF2 0%,#DCDCC8 55%,#A8A894 100%);
   box-shadow:0 0 44px 12px rgba(230,230,210,.20), inset -8px -6px 0 rgba(0,0,0,.10);
   opacity:0;transition:opacity 1.2s}
-body[data-theme="night"] .moon{opacity:1}
 
 /* ── Stars + galaxy (night only) ── */
 .stars,.galaxy,.planets{position:absolute;inset:0;opacity:0;transition:opacity 1.4s}
-body[data-theme="night"] .stars,
-body[data-theme="night"] .galaxy,
-body[data-theme="night"] .planets{opacity:1}
-body[data-theme="night"][data-weather="rain"] .stars,
-body[data-theme="night"][data-weather="rain"] .galaxy,
-body[data-theme="night"][data-weather="rain"] .planets{opacity:.18}
 
 .star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 3s ease-in-out infinite}
 @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
@@ -453,31 +442,24 @@ body[data-theme="night"][data-weather="rain"] .planets{opacity:.18}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='340' preserveAspectRatio='none'%3E%3Cpath d='M0 340 L0 215 L100 140 L190 220 L280 130 L380 210 L470 145 L570 235 L660 160 L760 240 L850 175 L950 250 L1050 190 L1130 245 L1200 200 L1200 340 Z' fill='%236F87A0'/%3E%3Cpath d='M280 130 L308 172 L286 180 L262 162 Z' fill='%23FFFFFF' opacity='.75'/%3E%3C/svg%3E")}
 .ridge-near{height:24vh;opacity:.95;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='240' preserveAspectRatio='none'%3E%3Cpath d='M0 240 L0 170 L120 120 L240 180 L360 128 L480 190 L600 140 L720 196 L840 150 L960 200 L1080 160 L1200 205 L1200 240 Z' fill='%233F5468'/%3E%3C/svg%3E")}
-body[data-theme="night"] .ridge-far{filter:brightness(.30) saturate(.55)}
-body[data-theme="night"] .ridge-mid{filter:brightness(.22) saturate(.5)}
-body[data-theme="night"] .ridge-near{filter:brightness(.16) saturate(.45)}
 body[data-weather="rain"] .ridge-far,body[data-weather="snow"] .ridge-far{opacity:.32;filter:blur(1.5px) brightness(.85)}
 body[data-weather="rain"] .ridge-mid,body[data-weather="snow"] .ridge-mid{opacity:.6;filter:blur(.6px)}
 
 /* ── Village: a few lit houses + a stupa, tucked at the ridge base ── */
 .village{position:absolute;left:6%;bottom:calc(24vh - 30px);width:230px;height:64px;opacity:.9;transition:filter 1.2s}
 .village svg{width:100%;height:100%;display:block}
-body[data-theme="night"] .village{filter:brightness(.5)}
 .win{fill:#4A5560;transition:fill 1s}
-body[data-theme="night"] .win{fill:#FFC96B;animation:windowFlicker 5s ease-in-out infinite}
 @keyframes windowFlicker{0%,100%{opacity:1}47%{opacity:.82}52%{opacity:1}}
 
 /* haze band above the ridges to seat everything in air */
 .haze{position:absolute;left:0;right:0;bottom:18vh;height:26vh;
   background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.35));
   opacity:.55;transition:opacity 1.2s}
-body[data-theme="night"] .haze{opacity:.10}
 body[data-weather="rain"] .haze,body[data-weather="cloudy"] .haze{opacity:.75}
 
 /* ── Clouds ── */
 .cloud{position:absolute;border-radius:100px;background:rgba(255,255,255,.85);filter:blur(.4px);opacity:0;transition:opacity 1.2s}
 body[data-weather="cloudy"] .cloud,body[data-weather="rain"] .cloud,body[data-weather="snow"] .cloud{opacity:1}
-body[data-theme="night"] .cloud{background:rgba(150,162,178,.42)}
 .cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:100px}
 .cloud-1{width:180px;height:42px;top:12%;left:-220px;animation:drift 48s linear infinite}
 .cloud-1::before{width:86px;height:86px;top:-36px;left:26px}
@@ -501,7 +483,6 @@ body[data-weather="rain"] .cloud-3{top:3%}
 .drop{position:absolute;top:-14%;width:1.4px;height:60px;
   background:linear-gradient(180deg,rgba(174,204,230,0),rgba(190,215,240,.75));
   animation:fall linear infinite}
-body[data-theme="night"] .drop{background:linear-gradient(180deg,rgba(150,180,215,0),rgba(170,200,235,.55))}
 @keyframes fall{to{transform:translateY(118vh)}}
 .splash{position:absolute;bottom:0;width:12px;height:12px;border-radius:50%;
   border:1px solid rgba(200,225,245,.5);opacity:0;animation:splash 1.6s ease-out infinite}
@@ -532,69 +513,6 @@ body:not([data-weather="rain"]) .flash{animation:none;opacity:0}
 
 /* Glass-lift the chrome so the scenery reads through subtly */
 body[data-theme="day"] .main{background:rgba(244,246,251,.72);backdrop-filter:blur(3px)}
-body[data-theme="night"] .main{background:rgba(10,16,26,.62);backdrop-filter:blur(3px)}
-
-/* ── NIGHT THEME (deep midnight blue with warm gold accents) ── */
-body[data-theme="night"]{
-  --ink:#dce3ec;
-  --navy-900:#e8eef5;--navy-950:#eef3f8;--navy-800:#d3dbe6;
-  --steel-300:#a7b2c4;--steel-400:#8894a8;--steel-600:#b8c2d2;--steel-700:#eef2f7;
-  --surface:#141b2b;--surface-2:#0f1522;--surface-3:#1d2740;
-  --line:#28344d;--line-strong:#3a496b;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.5);--shadow-md:0 8px 28px rgba(0,0,0,.6);--shadow-lg:0 20px 56px rgba(0,0,0,.7);
-  --gold-400:#e8c15a;--gold-500:#d4a94a;
-}
-body[data-theme="night"]{background:radial-gradient(ellipse at top,#1a2338 0%,#0d1220 60%,#080b14 100%);color:#dce3ec}
-/* Elements that use navy-900/950 as BACKGROUND must stay dark-on-light or
-   gold-on-dark — override them back explicitly since we flipped navy to light. */
-body[data-theme="night"] .topbar{background:linear-gradient(180deg,#0d1220,#0a0e18);color:#eef3f8;border-color:var(--line)}
-body[data-theme="night"] .sidenav{background:#0a0e18;border-color:var(--line)}
-body[data-theme="night"] .radio-pill{background:var(--surface-3);color:#dce3ec;border-color:var(--line)}
-body[data-theme="night"] .radio-pill.sel{background:linear-gradient(135deg,var(--gold-400),var(--gold-500));color:#141b2b;border-color:var(--gold-400)}
-body[data-theme="night"] .avatar{color:#141b2b}
-body[data-theme="night"] .btn-gold,body[data-theme="night"] .btn-primary{background:linear-gradient(135deg,var(--gold-400),var(--gold-500));color:#141b2b}
-body[data-theme="night"] .recoup-badge{color:#141b2b}
-body[data-theme="night"] .pi-tab{color:#dce3ec;background:var(--surface-3);border-color:var(--line)}
-body[data-theme="night"] .pi-tab:hover{background:#25314e}
-body[data-theme="night"] .pi-tab-active{background:linear-gradient(135deg,var(--gold-400),var(--gold-500));color:#141b2b;border-color:var(--gold-400);box-shadow:0 2px 12px rgba(232,193,90,.3)}
-/* Muted text */
-body[data-theme="night"] .page-sub,body[data-theme="night"] .hint,
-body[data-theme="night"] .field label,body[data-theme="night"] .stat-label,
-body[data-theme="night"] .collapse-head .chev{color:#a7b2c4}
-body[data-theme="night"] .stat-val,body[data-theme="night"] .detail-subject,
-body[data-theme="night"] .page-title{color:#fff}
-/* Controls */
-body[data-theme="night"] input,body[data-theme="night"] select,
-body[data-theme="night"] textarea{background:#0c111c;color:#dce3ec;border-color:var(--line-strong)}
-body[data-theme="night"] input::placeholder{color:#5e6a80}
-body[data-theme="night"] .chk-box{accent-color:var(--gold-400)}
-/* Buttons */
-body[data-theme="night"] .btn-ghost{color:#dce3ec;border-color:var(--line-strong);background:transparent}
-body[data-theme="night"] .btn-ghost:hover{background:var(--surface-3)}
-body[data-theme="night"] .btn-danger{background:linear-gradient(135deg,#b3453a,#8f342b);border-color:#b3453a;color:#fff}
-/* Surfaces */
-body[data-theme="night"] .main{background:rgba(13,18,32,.55);backdrop-filter:blur(4px)}
-body[data-theme="night"] .card,body[data-theme="night"] .collapse,
-body[data-theme="night"] .closure-card,body[data-theme="night"] .auth-card{background:var(--surface);border-color:var(--line)}
-body[data-theme="night"] .stat-card{background:linear-gradient(135deg,#182238 60%,#141b2b);border-color:var(--line)}
-body[data-theme="night"] .est-card{background:var(--surface);border-color:var(--line)}
-body[data-theme="night"] .est-card:hover{background:var(--surface-3);border-color:var(--gold-500)}
-body[data-theme="night"] .est-icon{background:linear-gradient(135deg,var(--gold-400),var(--gold-500));color:#141b2b}
-body[data-theme="night"] .badge-neutral{background:var(--surface-3);color:#a7b2c4}
-body[data-theme="night"] .locked-note{background:var(--surface-3);color:#a7b2c4;border-color:var(--line)}
-body[data-theme="night"] .txn{border-color:var(--line)}
-body[data-theme="night"] .txn:hover{background:var(--surface-3)}
-body[data-theme="night"] .balance-line{background:var(--surface-3) !important;border-color:var(--line) !important}
-body[data-theme="night"] .recoup-open-line{background:var(--surface-3) !important;border-color:var(--gold-400) !important}
-body[data-theme="night"] .cycle-divider{color:var(--gold-400);border-color:var(--line)}
-body[data-theme="night"] .collapse-head:hover{background:var(--surface-3)}
-body[data-theme="night"] .tab.active{color:#fff}
-/* Print artifacts ALWAYS stay white */
-body[data-theme="night"] .letter-page,body[data-theme="night"] .vch,
-body[data-theme="night"] .pg,body[data-theme="night"] .pav-page{background:#fff;color:#1a1a1a}
-body[data-theme="night"] .pg *,body[data-theme="night"] .pav-page *{color:#1a1a1a}
-body[data-theme="night"] .form2-table th{background:#e8e8e8;color:#1a1a1a}
-body[data-theme="night"] .form2-table td{color:#1a1a1a}
 
 .stat-clickable{cursor:pointer}
 .stat-clickable:hover{border-color:var(--gold-500)}
@@ -662,8 +580,6 @@ body[data-theme="day"] .est-card:hover{border-color:var(--gold-500);box-shadow:0
 .pi-tab:hover{background:var(--surface-2)}
 .pi-tab-active{background:var(--gold-400);color:var(--navy-950);border-color:var(--gold-500)}
 .pi-tab-active:hover{background:var(--gold-500)}
-body[data-theme="night"] .pi-tab{background:var(--surface);border-color:var(--line);color:var(--steel-300)}
-body[data-theme="night"] .pi-tab-active{background:var(--gold-400);color:var(--navy-950);border-color:var(--gold-500)}
 
 /* Motion & Animation */
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -740,7 +656,6 @@ body[data-weather="clear"] .sky{opacity:.3}
 .orb-1{width:6px;height:6px;background:var(--gold-400);animation:orbit1 25s linear infinite}
 .orb-2{width:4px;height:4px;background:var(--copper);animation:orbit2 35s linear infinite}
 .orb-3{width:5px;height:5px;background:var(--gold-500);animation:orbit3 20s linear infinite}
-body[data-theme="night"] .orb{opacity:.25}
 
 /* Enhanced account statement / txn cards — richer look */
 .txn{position:relative;padding:13px 14px 13px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px;flex-wrap:wrap;transition:background .18s ease,transform .1s ease;background:linear-gradient(90deg,var(--surface) 0%,transparent 100%)}
@@ -753,12 +668,9 @@ body[data-theme="night"] .orb{opacity:.25}
 .txn-amt{font-weight:800;font-size:14.5px;white-space:nowrap;letter-spacing:-.02em}
 .txn.recv .txn-amt{color:var(--ok-500)}
 .txn.exp .txn-amt{color:var(--bad-500)}
-body[data-theme="night"] .txn.recv .txn-amt{color:#4ade80}
-body[data-theme="night"] .txn.exp .txn-amt{color:#f87171}
 
 /* Balance line — richer */
 .balance-line{background:linear-gradient(135deg,var(--surface-2),var(--surface-3)) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,.4);transition:all .2s ease}
-body[data-theme="night"] .balance-line{box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
 
 /* Cycle divider — richer badge style */
 .cycle-divider{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gold-600)}
@@ -774,6 +686,4 @@ body[data-theme="night"] .balance-line{box-shadow:inset 0 1px 0 rgba(255,255,255
 .collapse:hover{box-shadow:var(--shadow-sm)}
 .collapse.open{border-color:var(--gold-500);box-shadow:0 2px 12px rgba(212,175,55,.08)}
 .collapse.open .collapse-head{background:linear-gradient(90deg,rgba(212,175,55,.06),transparent)}
-body[data-theme="night"] .collapse.open{border-color:var(--gold-500);box-shadow:0 2px 16px rgba(232,193,90,.12)}
-body[data-theme="night"] .collapse.open .collapse-head{background:linear-gradient(90deg,rgba(232,193,90,.1),transparent)}
 .collapse-head{transition:background .15s ease}
