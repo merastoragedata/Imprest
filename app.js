@@ -3973,7 +3973,7 @@
       '<div style="text-align:center;font-size:9px;color:#555;font-family:Arial,sans-serif;margin-bottom:2px">Maharashtra State Electricity Transmission Co. Ltd.</div>';
   }
   var PRINT_CSS = "@page{size:A4;margin:0}" + "body{margin:0;font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".pg{width:210mm;min-height:297mm;box-sizing:border-box;padding:18mm 20mm;margin:0 auto;page-break-after:always}" + ".pg:last-child{page-break-after:auto}" + ".lt-org{font-weight:700;font-size:16px;text-align:center}" + ".lt-iso{text-align:center;font-size:11.5px;margin:5px 0 22px}" + ".lt-send{font-size:12px;margin-bottom:10px;white-space:pre-wrap}" + ".lt-ref{display:flex;justify-content:space-between;font-size:13px;margin-bottom:20px}" + ".lt-to{margin-bottom:16px}.lt-sub{margin-bottom:14px}.lt-salut{margin-bottom:10px}" + ".lt-para{margin-bottom:11px}" + ".lt-encl{margin-bottom:16px;font-size:12.5px}.lt-encl ol{margin:4px 0 0 18px;padding:0}" + ".lt-emp{text-align:right;margin:24px 0 28px}" + ".lt-rec{border-top:1px dashed #ccc;padding-top:14px}" +
-    ".vch{border:1px solid #999;border-radius:3px;padding:14px 22px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:center}" + ".vch-logo{text-align:center;margin-bottom:2px}" + ".vch-logo img{margin:0 auto}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 12px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:7px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:10px 0 6px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:16px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:9px 0;flex:none}" +
+    ".vch{border:1px solid #999;border-radius:3px;padding:12px 22px 10px;font-size:13px;font-family:'Times New Roman',Georgia,serif;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start}" + ".vch-logo{text-align:center;margin-bottom:3px;flex:none}" + ".vch-logo img{margin:0 auto;display:block}" + ".vch-org{font-weight:700;font-size:13.5px;text-align:center;margin:2px 0 10px;font-family:Arial,sans-serif}" + ".vch-row{margin-bottom:6px;padding-bottom:1px;display:flex}" + ".vch-row b{flex:none;width:20px}" + ".vch-label{flex:none;width:134px}" + ".vch-cert-title{font-weight:700;margin:8px 0 5px}" + ".vch-sign{text-align:right;font-weight:700;margin-top:12px}" + ".vch-pair{display:flex;flex-direction:column;gap:0;height:261mm}" + ".vch-divider{border-top:2px dotted #777;margin:8px 0;flex:none}" +
     ".f2-page{font-family:Arial,sans-serif;font-size:11.5px}" + ".f2-title{text-align:center;font-weight:700;font-size:16px;margin:2px 0 10px;font-family:Georgia,'Times New Roman',serif}" +
     ".f2-head{width:100%;border-collapse:collapse;margin-bottom:8px}" + ".f2-head td{border:1px solid #999;padding:5px 8px;font-size:11.5px;vertical-align:top}" +
     ".f2-table{width:100%;border-collapse:collapse;font-size:11px;line-height:1.3;table-layout:fixed}" + ".f2-table{border:1px solid #999}" + ".f2-table th,.f2-table td{border:1px solid #bbb;padding:4px 5px;text-align:center;overflow:hidden}" + ".f2-table thead th{border-bottom:1px solid #999;background:#eee;font-weight:700}" + ".f2-table tfoot td{border-top:1px solid #999;font-weight:700}" +
@@ -4724,7 +4724,7 @@
   }
   function voucherHtmlBlock(e, tx) {
     var v = voucherData(e, tx);
-    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
+    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(46) + "</div>" +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", v.voucherNo) +
       voucherRow(2, "Date", v.date) +
@@ -4782,7 +4782,7 @@
     });
   }
   function blankVoucherHtml() {
-    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(52) + "</div>" +
+    return '<div class="vch"><div class="vch-logo">' + logoImgHtml(46) + "</div>" +
       '<div class="vch-org">MAHARASHTRA STATE ELECTRICITY TRANSMISSION COMPANY LIMITED</div>' +
       voucherRow(1, "Voucher No", "______________") +
       voucherRow(2, "Date", "______________") +
